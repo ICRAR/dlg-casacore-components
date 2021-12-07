@@ -1,4 +1,4 @@
-"""Python setup.py for project_name package"""
+"""Python setup.py for dlg_casacore_components package"""
 import io
 import os
 from setuptools import find_packages, setup
@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 
 def read(*paths, **kwargs):
     """Read the contents of a text file safely.
-    >>> read("project_name", "VERSION")
+    >>> read("dlg_casacore_components", "VERSION")
     '0.1.0'
     >>> read("README.md")
     ...
@@ -30,17 +30,17 @@ def read_requirements(path):
 
 
 setup(
-    name="project_name",
-    version=read("project_name", "VERSION"),
-    description="project_description",
-    url="https://github.com/author_name/project_urlname/",
+    name="dlg_casacore_components",
+    version=read("dlg_casacore_components", "VERSION"),
+    description="Awesome dlg_casacore_components created by ICRAR",
+    url="https://github.com/ICRAR/dlg-casacore-components/",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    author="author_name",
+    author="ICRAR",
     packages=find_packages(exclude=["tests", ".github"]),
     install_requires=read_requirements("requirements.txt"),
     entry_points={
-        "console_scripts": ["project_name = project_name.__main__:main"]
+        "console_scripts": ["dlg_casacore_components = dlg_casacore_components.__main__:main"]
     },
     extras_require={"test": read_requirements("requirements-test.txt")},
 )
