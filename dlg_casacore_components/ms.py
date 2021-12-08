@@ -22,33 +22,27 @@
 import os
 import io
 import logging
-import pickle
 import urllib.error
-import urllib.request
 
-import time
 import numpy as np
 import casacore
 import casacore.tables
-from dataclasses import dataclass, astuple
-from typing import Optional, Tuple
+from dataclasses import dataclass
+from typing import Tuple
 
 from dlg import droputils, utils
-from dlg.drop import BarrierAppDROP, BranchAppDrop, ContainerDROP
+from dlg.drop import BarrierAppDROP, ContainerDROP
 from dlg.exceptions import DaliugeException
-from dlg.meta import dlg_float_param, dlg_string_param
-from dlg.meta import dlg_bool_param, dlg_int_param
-from dlg.meta import dlg_component, dlg_batch_input
-from dlg.meta import dlg_batch_output, dlg_streaming_input
-from dlg.meta import (dlg_batch_input, dlg_batch_output, dlg_component,
-                      dlg_float_param, dlg_int_param, dlg_streaming_input,
-                      dlg_string_param, dlg_bool_param)
 
-from dlg.apps.pyfunc import serialize_data, deserialize_data
+from dlg.meta import (
+    dlg_batch_input, dlg_batch_output, dlg_component,
+    dlg_int_param, dlg_streaming_input
+)
+
+from dlg.io import OpenMode
 
 logger = logging.getLogger(__name__)
 
-from dlg.io import OpenMode
 
 def drop_to_numpy(drop) -> np.ndarray:
     dropio = drop.getIO()
@@ -57,11 +51,12 @@ def drop_to_numpy(drop) -> np.ndarray:
     dropio.close()
     return res
 
+
 def numpy_to_drop(array: np.ndarray, drop):
     buf = io.BytesIO()
     np.save(buf, array)
-    dropio.write(buf.getbuffer())
-    dropio.close()
+    drop.write(buf.getbuffer())
+
 
 @dataclass
 class PortOptions:
@@ -70,6 +65,7 @@ class PortOptions:
     dtype: str
     rows: range
     slicer: Tuple[slice]
+
 
 ##
 # @brief MSReadApp
