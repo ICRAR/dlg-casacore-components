@@ -79,6 +79,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install boost
         run: brew install boost
+      - name: Install casacore
+        run: |
+          brew tap ska-sa/tap
+          brew install casacore
       #  uses: MarkusJx/install-boost@v2.0.0
       #  with:
       #    boost_version: 1.73.0
