@@ -3,7 +3,7 @@ __package__ = "dlg_casacore_components"
 from dlg import droputils, utils
 
 # extend the following as required
-from .appComponents import MyAppDROP
-from .dataComponents import MyDataDROP
+from .ms import MSReadApp, MSCopyUpdateApp
+from .cbf_sdp import MSStreamingPlasmaProducer, MSStreamingPlasmaConsumer
 
-__all__ = ["MyAppDROP", "MyDataDROP"]
+__all__ = ["MSReadApp", "MSCopyUpdateApp", "MSStreamingPlasmaProducer", "MSStreamingPlasmaConsumer"]

@@ -1,4 +1,4 @@
-# my_awesome_component
+# dlg-casacore-components
 
 [![codecov](https://codecov.io/gh/ICRAR/dlg-casacore-components/branch/main/graph/badge.svg?token=dlg-casacore-components_token_here)](https://codecov.io/gh/ICRAR/dlg-casacore-components)
 [![CI](https://github.com/ICRAR/dlg-casacore-components/actions/workflows/main.yml/badge.svg)](https://github.com/ICRAR/dlg-casacore-components/actions/workflows/main.yml)
@@ -14,17 +14,25 @@ There are multiple options for the installation, depending on how you are intend
 ## Install it from PyPI
 
 ### Engine in virtual environment
+
 ```bash
 pip install dlg_casacore_components
 ```
+
 ### Engine in Docker container
+
 ```bash
 docker exec -t daliuge-engine bash -c 'pip install --prefix=$DLG_ROOT/code dlg_casacore_components'
 ```
+
 ## Usage
+
 For example the MyComponent component will be available to the engine when you specify 
+
+```python
+from dlg_casacore_components import MSReadApp
+MSReadApp('a', 'a')
 ```
-dlg_casacore_components.appComponents.MyComponent
-```
+
 in the AppClass field of a Python Branch component. The EAGLE palette associated with these components are also generated and can be loaded directly into EAGLE. In that case all the fields are correctly populated for the respective components.
 

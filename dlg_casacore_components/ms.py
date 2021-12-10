@@ -1,24 +1,22 @@
 #
 #    ICRAR - International Centre for Radio Astronomy Research
-#    (c) UWA - The University of Western Australia, 2017
+#    (c) UWA - The University of Western Australia, 2021
 #    Copyright by UWA (in the framework of the ICRAR)
 #    All rights reserved
 #
-#    This program is free software; you can redistribute it and/or
-#    modify it under the terms of the GNU General Public License
-#    as published by the Free Software Foundation; either version 2
-#    of the License, or (at your option) any later version.
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
 #
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
 #
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#    MA  02110-1301, USA.
-
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 import os
 import io
 import logging
@@ -146,7 +144,7 @@ class MSReadApp(BarrierAppDROP):
 
 ##
 # @brief MSCopyUpdateApp
-# @details Copies an input measurement set and updates the specified table.
+# @details Copies an input measurement set to ouput and updates a specified table.
 # @par EAGLE_START
 # @param category PythonApp
 # @param[in] param/appclass appclass/daliuge_component_nifty.ms.MSCopyUpdateApp/String/readonly/False/
@@ -178,7 +176,7 @@ class MSCopyUpdateApp(BarrierAppDROP):
         self.updateOutputs()
 
     def copyOutputs(self):
-        #self.copyRecursive(self.inputs[0])
+        self.copyRecursive(self.inputs[0])
         for outputDrop in self.outputs:
             cmd = f"cp -r {self.inputs[0].path} {outputDrop.path}"
             os.system(cmd)
