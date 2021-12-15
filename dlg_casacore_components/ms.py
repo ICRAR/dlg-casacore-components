@@ -82,18 +82,18 @@ class PortOptions:
 #     \~English last pol to read
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop to a Measurement Set
-# @param[out] port/uvw uvw/ndarray/
-#     \~English Port containing UVWs as a numpy ndarray
-# @param[out] port/freq freq/ndarray/
-#     \~English Port containing frequencies as a numpy ndarray
-# @param[out] port/vis vis/ndarray/
-#     \~English Port containing visibilities as a numpy ndarray
-# @param[out] port/weight_spectrum weight_spectrum/ndarray/
-#     \~English Port containing weight spectrum as a numpy ndarray
-# @param[out] port/flag flag/ndarray/
-#     \~English Port containing flags as a numpy ndarray
-# @param[out] port/weight weight/ndarray/
-#     \~English Port containing weights as a numpy ndarray
+# @param[out] port/uvw uvw/npy/
+#     \~English Port containing UVWs in npy format
+# @param[out] port/freq freq/npy/
+#     \~English Port containing frequencies in npy format
+# @param[out] port/vis vis/npy/
+#     \~English Port containing visibilities in npy format
+# @param[out] port/weight_spectrum weight_spectrum/npy/
+#     \~English Port containing weight spectrum in npy format
+# @param[out] port/flag flag/npy/
+#     \~English Port containing flags in npy format
+# @param[out] port/weight weight/npy/
+#     \~English Port containing weights in npy format
 # @par EAGLE_END
 class MSReadApp(BarrierAppDROP):
     component_meta = dlg_component('MSReadApp', 'MeasurementSet Read App',
@@ -155,8 +155,8 @@ class MSReadApp(BarrierAppDROP):
 #     \~English number of table rows to update
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop of a Measurement Set
-# @param[in] port/vis vis/ndarray/
-#     \~English Port containing visibilities as a numpy ndarray
+# @param[in] port/vis vis/npy/
+#     \~English Port containing visibilities in npy format
 # @param[out] port/ms ms/PathbasedDrop/
 #     \~English output measurement set
 # @par EAGLE_END
@@ -220,8 +220,8 @@ class MSCopyUpdateApp(BarrierAppDROP):
 #     \~English Application class
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop of a Measurement Set
-# @param[in] port/vis vis/ndarray/
-#     \~English Port containing visibilities as a numpy ndarray
+# @param[in] port/vis vis/npy/
+#     \~English Port containing visibilities in npy format
 # @par EAGLE_END
 class MSUpdateApp(BarrierAppDROP):
     component_meta = dlg_component('MSUpdateApp', 'MeasurementSet Update App',

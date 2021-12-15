@@ -44,12 +44,10 @@ logger = logging.getLogger(__name__)
 # @param category PythonApp
 # @param[in] param/plasma_path Plasma Path//String/readwrite/
 #     \~English Path to plasma store.
-# @param[in] param/appclass Application class/dlg.apps.plasma.MSStreamingPlasmaConsumer/String/readonly/
+# @param[in] param/appclass Application class/dlg_casacore_components.cbf_sdp.MSStreamingPlasmaConsumer/String/readonly/
 #     \~English Application class
-# @param[in] port/plasma_ms_input Plasma MS Input/Measurement Set/
-#     \~English Plasma MS input
-# @param[out] port/output_file Output File/File/
-#     \~English MS output file
+# @param[out] port/ms MS/PathBasedDrop/
+#     \~English MS output path
 # @par EAGLE_END
 class MSStreamingPlasmaConsumer(AppDROP):
     compontent_meta = dlg_component(
@@ -131,11 +129,11 @@ class MSStreamingPlasmaConsumer(AppDROP):
 # @param category PythonApp
 # @param[in] param/plasma_path Plasma Path//String/readwrite/
 #     \~English Path to plasma store
-# @param[in] param/appclass Application class/dlg.apps.plasma.MSStreamingPlasmaProducer/String/readonly/
+# @param[in] param/appclass Application class/dlg_casacore_components.cbf_sdp.MSStreamingPlasmaProducer/String/readonly/
 #     \~English Application class
-# @param[in] port/input_file Input File/File/
-#     \~English MS input file
-# @param[out] port/plasma_ms_output Plasma MS Output/Measurement Set/
+# @param[in] port/ms Measurement Set/PathBasedDrop/
+#     \~English MS input path
+# @param[out] port/event Event/String/
 #     \~English Plasma MS output
 # @par EAGLE_END
 class MSStreamingPlasmaProducer(BarrierAppDROP):
