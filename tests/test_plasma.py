@@ -38,11 +38,17 @@ from dlg.numpydroputils import NumpyDropUtils
 
 from cbf_sdp.ms_asserter import MSAsserter
 from dlg_casacore_components.plasma import MSPlasmaWriter, MSPlasmaReader
-from dlg_casacore_components.cbf_sdp import MSStreamingPlasmaConsumer, MSStreamingPlasmaProducer
+from dlg_casacore_components.cbf_sdp import (
+    MSStreamingPlasmaConsumer,
+    MSStreamingPlasmaProducer,
+)
 
-logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
+logging.basicConfig(
+    level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)]
+)
 
 test_ms_dir = Path(__file__).parent.absolute() / "data/test_ms.tar.gz"
+
 
 class CRCAppTests(unittest.TestCase):
     def setUp(self):
@@ -72,14 +78,13 @@ class CRCAppTests(unittest.TestCase):
             comparison = j == b[i]
             self.assertEqual(comparison.all(), True)
 
-
     def test_plasma_client(self):
         import pyarrow
         import io
         import numpy as np
 
         client = pyarrow.plasma.connect("/tmp/plasma")
-        indata = np.ones([10,10])
+        indata = np.ones([10, 10])
 
         # Read+Write BytesIO
         bio = io.BytesIO()
@@ -111,11 +116,9 @@ class CRCAppTests(unittest.TestCase):
         outdata = np.load(io.BytesIO(buf))
         np.testing.assert_array_equal(indata, outdata)
 
-
     def test_plasma_stream(self):
         in_file = "/tmp/test.ms"
         out_file = "/tmp/copy.ms"
-
 
         if os.path.exists(in_file):
             if os.path.isdir(in_file):
@@ -146,7 +149,6 @@ class CRCAppTests(unittest.TestCase):
 
         self.compare_measurement_sets(in_file, out_file)
         time.sleep(5)
-
 
     def test_plasma_writer(self):
         in_file = "/tmp/test.ms"
@@ -180,7 +182,7 @@ class CRCAppTests(unittest.TestCase):
         # Check the MS DATA content is the same as original
         with droputils.DROPWaiterCtx(self, e, 5):
             a.setCompleted()
-        #time.sleep(5)
+        # time.sleep(5)
 
         # self.compare_ms(in_file, out_file)
         self.compare_measurement_sets(in_file, out_file)
@@ -190,4 +192,3 @@ class CRCAppTests(unittest.TestCase):
         a = c.dataURL.split("//")[1]
         a = binascii.unhexlify(a)
         client.get_buffers([plasma.ObjectID(a)])
-

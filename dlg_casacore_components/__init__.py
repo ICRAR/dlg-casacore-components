@@ -1,10 +1,9 @@
 __package__ = "dlg_casacore_components"
-# The following imports are the binding to the DALiuGE system
-from dlg import droputils, utils
+
+from .cbf_sdp import MSStreamingPlasmaConsumer, MSStreamingPlasmaProducer
 
 # extend the following as required
-from .ms import MSReadApp, MSCopyUpdateApp
-from .cbf_sdp import MSStreamingPlasmaProducer, MSStreamingPlasmaConsumer
+from .ms import MSCopyUpdateApp, MSReadApp
 
 __all__ = [
     "MSReadApp",

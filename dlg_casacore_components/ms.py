@@ -17,21 +17,19 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
 import io
 import logging
-import urllib.error
+import os
+from dataclasses import dataclass
+from typing import Union
 
-import numpy as np
 import casacore
 import casacore.tables
-from dataclasses import dataclass
-from typing import Tuple
-
-from dlg import droputils, utils
+import numpy as np
+from dlg import droputils
 from dlg.drop import BarrierAppDROP, ContainerDROP
 from dlg.exceptions import DaliugeException
-
+from dlg.io import OpenMode
 from dlg.meta import (
     dlg_batch_input,
     dlg_batch_output,
@@ -39,8 +37,6 @@ from dlg.meta import (
     dlg_int_param,
     dlg_streaming_input,
 )
-
-from dlg.io import OpenMode
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +60,8 @@ class PortOptions:
     table: casacore.tables.table
     name: str
     dtype: str
-    rows: range
-    slicer: Tuple[slice]
+    rows: tuple[int, int]  # (start, end)
+    slicer: Union[slice, tuple[slice, slice, slice]]
 
 
 ##
@@ -106,10 +102,10 @@ class MSReadApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    row_start = dlg_int_param("row_start", 0)
-    row_end = dlg_int_param("row_end", None)
-    pol_start = dlg_int_param("pol_start", 0)
-    pol_end = dlg_int_param("pol_end", None)
+    row_start: int = dlg_int_param("row_start", 0)
+    row_end: int = dlg_int_param("row_end", None)
+    pol_start: int = dlg_int_param("pol_start", 0)
+    pol_end: int = dlg_int_param("pol_end", None)
 
     def run(self):
         if len(self.inputs) < 1:
@@ -120,9 +116,11 @@ class MSReadApp(BarrierAppDROP):
         assert os.path.exists(self.ms_path)
         assert casacore.tables.tableexists(self.ms_path)
         msm = casacore.tables.table(self.ms_path, readonly=True)
-        mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
+        mssw = casacore.tables.table(
+            msm.getkeyword("SPECTRAL_WINDOW"), readonly=True
+        )
 
-        if self.row_end == None:
+        if self.row_end is None:
             self.row_end = -1
         row_range = (self.row_start, self.row_end)
 
@@ -136,7 +134,9 @@ class MSReadApp(BarrierAppDROP):
         # table, name, dtype, slicer
         portOptions = [
             PortOptions(msm, "UVW", "float64", row_range, tensor_slice[0]),
-            PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]),
+            PortOptions(
+                mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]
+            ),
             PortOptions(
                 msm,
                 "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)",
@@ -216,10 +216,12 @@ class MSCopyUpdateApp(BarrierAppDROP):
 
     def updateOutputs(self):
         for outputDrop in self.outputs:
-            msm = casacore.tables.table(outputDrop.path, readonly=False)  # main table
-            mssw = casacore.tables.table(
-                msm.getkeyword("SPECTRAL_WINDOW"), readonly=True
-            )
+            msm = casacore.tables.table(
+                outputDrop.path, readonly=False
+            )  # main table
+            # mssw = casacore.tables.table(
+            #     msm.getkeyword("SPECTRAL_WINDOW"), readonly=True
+            # )
 
             portOptions = [
                 (msm, "DATA"),
@@ -233,8 +235,12 @@ class MSCopyUpdateApp(BarrierAppDROP):
                 table = portOptions[i][0]
                 name = portOptions[i][1]
                 data = drop_to_numpy(inputDrop)
-                num_rows = data.shape[0] if self.num_rows is None else self.num_rows
-                table.col(name).putcol(data, startrow=self.start_row, nrow=num_rows)
+                num_rows = (
+                    data.shape[0] if self.num_rows is None else self.num_rows
+                )
+                table.col(name).putcol(
+                    data, startrow=self.start_row, nrow=num_rows
+                )
 
     def copyRecursive(self, inputDrop):
         if isinstance(inputDrop, ContainerDROP):
@@ -273,8 +279,9 @@ class MSUpdateApp(BarrierAppDROP):
         self.updateOutputs()
 
     def updateOutputs(self):
-        msm = casacore.tables.table(self.inputs[0].path, readonly=False)  # main table
-        mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
+        msm = casacore.tables.table(
+            self.inputs[0].path, readonly=False
+        )  # main table
 
         portOptions = [
             (msm, "DATA"),

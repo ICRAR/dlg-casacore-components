@@ -17,34 +17,17 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
 import io
-import numpy as np
 import logging
-import asyncio
+import os
 
-from dlg.drop import BarrierAppDROP, AppDROP
-from dlg.meta import dlg_string_param
-from dlg.ddap_protocol import AppDROPStates
-from dlg.meta import (
-    dlg_component,
-    dlg_batch_input,
-    dlg_batch_output,
-    dlg_streaming_input,
-    dlg_bool_param,
-)
-
-from threading import Thread
-from multiprocessing import Lock
+import numpy as np
 from casacore import tables
-
-from cbf_sdp.consumers import plasma_writer
-from cbf_sdp import plasma_processor
-from cbf_sdp import utils, icd, msutils
+from dlg.drop import BarrierAppDROP
+from dlg.meta import dlg_bool_param
 
 logger = logging.getLogger(__name__)
 
-import time
 
 ##
 # @brief MSPlasmaReader
@@ -73,7 +56,9 @@ class MSPlasmaReader(BarrierAppDROP):
         filename = os.path.basename(path)
 
         value = ms.pop("/")
-        with tables.table(abs_path + "/" + filename, value[0], nrow=len(value[1])) as t:
+        with tables.table(
+            abs_path + "/" + filename, value[0], nrow=len(value[1])
+        ) as t:
             with t.row() as r:
                 for idx, val in enumerate(value[1]):
                     r.put(idx, val)

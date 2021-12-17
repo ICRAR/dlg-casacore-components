@@ -17,21 +17,23 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import logging
 import asyncio
-
-from dlg.drop import BarrierAppDROP, AppDROP
-from dlg.meta import dlg_string_param, dlg_float_param
-from dlg.ddap_protocol import AppDROPStates
-from dlg.meta import dlg_component, dlg_batch_input
-from dlg.meta import dlg_batch_output, dlg_streaming_input
-
-from threading import Thread
+import logging
 from multiprocessing import Lock
+from threading import Thread
 
+from cbf_sdp import icd, msutils, plasma_processor, utils
 from cbf_sdp.consumers import plasma_writer
-from cbf_sdp import plasma_processor
-from cbf_sdp import utils, icd, msutils
+from dlg.ddap_protocol import AppDROPStates
+from dlg.drop import AppDROP, BarrierAppDROP
+from dlg.meta import (
+    dlg_batch_input,
+    dlg_batch_output,
+    dlg_component,
+    dlg_float_param,
+    dlg_streaming_input,
+    dlg_string_param,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +81,8 @@ class MSStreamingPlasmaConsumer(AppDROP):
         outs = self.outputs
         if len(outs) < 1:
             raise Exception(
-                "At least one output MS should have been connected to %r" % self
+                "At least one output MS should have been connected to %r"
+                % self
             )
         self.output_file = outs[0]._path
         if self.plasma_path:
@@ -184,7 +187,9 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
         # self.input_file = kwargs.get('input_file')
         ins = self.inputs
         if len(ins) < 1:
-            raise Exception("At least one MS should have been connected to %r" % self)
+            raise Exception(
+                "At least one MS should have been connected to %r" % self
+            )
         self.input_file = ins[0]._path
         self.outputs[0].write(b"init")
         loop = asyncio.new_event_loop()
