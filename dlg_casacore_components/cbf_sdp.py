@@ -189,4 +189,3 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
         self.outputs[0].write(b"init")
         loop = asyncio.new_event_loop()
         loop.run_until_complete(self._run_producer())
-

@@ -31,7 +31,7 @@ from dlg.meta import (
     dlg_batch_input,
     dlg_batch_output,
     dlg_streaming_input,
-    dlg_bool_param
+    dlg_bool_param,
 )
 
 from threading import Thread
@@ -161,5 +161,4 @@ class MSPlasmaWriter(BarrierAppDROP):
         out = self.outputs[0]
         out_bytes = self._serialize_table(inp)
         out.write(out_bytes)
-        #print("manual close")
-        #out._wio.close()
+        # out._wio.close()

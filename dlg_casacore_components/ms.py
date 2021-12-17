@@ -33,8 +33,11 @@ from dlg.drop import BarrierAppDROP, ContainerDROP
 from dlg.exceptions import DaliugeException
 
 from dlg.meta import (
-    dlg_batch_input, dlg_batch_output, dlg_component,
-    dlg_int_param, dlg_streaming_input
+    dlg_batch_input,
+    dlg_batch_output,
+    dlg_component,
+    dlg_int_param,
+    dlg_streaming_input,
 )
 
 from dlg.io import OpenMode
@@ -96,18 +99,23 @@ class PortOptions:
 #     \~English Port containing weights in npy format
 # @par EAGLE_END
 class MSReadApp(BarrierAppDROP):
-    component_meta = dlg_component('MSReadApp', 'MeasurementSet Read App',
-                                   [dlg_batch_input('binary/*', [])],
-                                   [dlg_batch_output('binary/*', [])],
-                                   [dlg_streaming_input('binary/*')])
-    row_start = dlg_int_param('row_start', 0)
-    row_end = dlg_int_param('row_end', None)
-    pol_start = dlg_int_param('pol_start', 0)
-    pol_end = dlg_int_param('pol_end', None)
+    component_meta = dlg_component(
+        "MSReadApp",
+        "MeasurementSet Read App",
+        [dlg_batch_input("binary/*", [])],
+        [dlg_batch_output("binary/*", [])],
+        [dlg_streaming_input("binary/*")],
+    )
+    row_start = dlg_int_param("row_start", 0)
+    row_end = dlg_int_param("row_end", None)
+    pol_start = dlg_int_param("pol_start", 0)
+    pol_end = dlg_int_param("pol_end", None)
 
     def run(self):
         if len(self.inputs) < 1:
-            raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
+            raise DaliugeException(
+                f"MSReadApp has {len(self.inputs)} input drops but requires at least 1"
+            )
         self.ms_path = self.inputs[0].path
         assert os.path.exists(self.ms_path)
         assert casacore.tables.tableexists(self.ms_path)
@@ -117,28 +125,50 @@ class MSReadApp(BarrierAppDROP):
         if self.row_end == None:
             self.row_end = -1
         row_range = (self.row_start, self.row_end)
-        
+
         # (baseline, channels, pols)
-        tensor_slice = (slice(0, None), slice(0, None), slice(self.pol_start, self.pol_end))
+        tensor_slice = (
+            slice(0, None),
+            slice(0, None),
+            slice(self.pol_start, self.pol_end),
+        )
 
         # table, name, dtype, slicer
         portOptions = [
-            PortOptions(msm,  "UVW",                                                "float64",    row_range,   tensor_slice[0]),
-            PortOptions(mssw, "CHAN_FREQ",                                          "float64",    (0, -1),     tensor_slice[1]),
-            PortOptions(msm,  "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)",   "complex128", row_range,   tensor_slice),
-            PortOptions(msm,  "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)",            "float64",    row_range,   tensor_slice),
-            PortOptions(msm,  "FLAG",                                               "bool",       row_range,   tensor_slice),
-            PortOptions(msm,  "WEIGHT",                                             "float64",    row_range,   tensor_slice[0]),
+            PortOptions(msm, "UVW", "float64", row_range, tensor_slice[0]),
+            PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]),
+            PortOptions(
+                msm,
+                "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)",
+                "complex128",
+                row_range,
+                tensor_slice,
+            ),
+            PortOptions(
+                msm,
+                "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)",
+                "float64",
+                row_range,
+                tensor_slice,
+            ),
+            PortOptions(msm, "FLAG", "bool", row_range, tensor_slice),
+            PortOptions(msm, "WEIGHT", "float64", row_range, tensor_slice[0]),
         ]
 
         for i in range(len(portOptions)):
             if len(self.outputs) >= i + 1:
                 outputDrop = self.outputs[i]
                 opt = portOptions[i]
-                data = opt.table.query(columns=f"{opt.name} as COL", offset=opt.rows[0], limit=opt.rows[1])\
-                    .getcol("COL")[opt.slicer]\
-                    .squeeze()\
+                data = (
+                    opt.table.query(
+                        columns=f"{opt.name} as COL",
+                        offset=opt.rows[0],
+                        limit=opt.rows[1],
+                    )
+                    .getcol("COL")[opt.slicer]
+                    .squeeze()
                     .astype(opt.dtype)
+                )
                 numpy_to_drop(data, outputDrop)
 
 
@@ -161,12 +191,15 @@ class MSReadApp(BarrierAppDROP):
 #     \~English output measurement set
 # @par EAGLE_END
 class MSCopyUpdateApp(BarrierAppDROP):
-    component_meta = dlg_component('MSCopyUpdateApp', 'MeasurementSet Copy and Update App',
-                                   [dlg_batch_input('binary/*', [])],
-                                   [dlg_batch_output('binary/*', [])],
-                                   [dlg_streaming_input('binary/*')])
-    start_row = dlg_int_param('start_row', 0)
-    num_rows = dlg_int_param('num_rows', None)
+    component_meta = dlg_component(
+        "MSCopyUpdateApp",
+        "MeasurementSet Copy and Update App",
+        [dlg_batch_input("binary/*", [])],
+        [dlg_batch_output("binary/*", [])],
+        [dlg_streaming_input("binary/*")],
+    )
+    start_row = dlg_int_param("start_row", 0)
+    num_rows = dlg_int_param("num_rows", None)
 
     def run(self):
         self.ms_path = self.inputs[0].path
@@ -180,22 +213,23 @@ class MSCopyUpdateApp(BarrierAppDROP):
         for outputDrop in self.outputs:
             cmd = f"cp -r {self.inputs[0].path} {outputDrop.path}"
             os.system(cmd)
-        
 
     def updateOutputs(self):
         for outputDrop in self.outputs:
             msm = casacore.tables.table(outputDrop.path, readonly=False)  # main table
-            mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
+            mssw = casacore.tables.table(
+                msm.getkeyword("SPECTRAL_WINDOW"), readonly=True
+            )
 
             portOptions = [
                 (msm, "DATA"),
-                #(msm, "UVW"),
-                #(mssw, "CHAN_FREQ"),
-                #(msm, "WEIGHT")
+                # (msm, "UVW"),
+                # (mssw, "CHAN_FREQ"),
+                # (msm, "WEIGHT")
             ]
             port_offset = 1
             for i in range(len(self.inputs) - port_offset):
-                inputDrop = self.inputs[i+port_offset]
+                inputDrop = self.inputs[i + port_offset]
                 table = portOptions[i][0]
                 name = portOptions[i][1]
                 data = drop_to_numpy(inputDrop)
@@ -224,10 +258,13 @@ class MSCopyUpdateApp(BarrierAppDROP):
 #     \~English Port containing visibilities in npy format
 # @par EAGLE_END
 class MSUpdateApp(BarrierAppDROP):
-    component_meta = dlg_component('MSUpdateApp', 'MeasurementSet Update App',
-                                   [dlg_batch_input('binary/*', [])],
-                                   [dlg_batch_output('binary/*', [])],
-                                   [dlg_streaming_input('binary/*')])
+    component_meta = dlg_component(
+        "MSUpdateApp",
+        "MeasurementSet Update App",
+        [dlg_batch_input("binary/*", [])],
+        [dlg_batch_output("binary/*", [])],
+        [dlg_streaming_input("binary/*")],
+    )
 
     def run(self):
         self.ms_path = self.inputs[0].path
@@ -241,13 +278,13 @@ class MSUpdateApp(BarrierAppDROP):
 
         portOptions = [
             (msm, "DATA"),
-            #(msm, "UVW"),
-            #(mssw, "CHAN_FREQ"),
-            #(msm, "WEIGHT")
+            # (msm, "UVW"),
+            # (mssw, "CHAN_FREQ"),
+            # (msm, "WEIGHT")
         ]
         port_offset = 1
         for i in range(len(self.inputs) - port_offset):
-            inputDrop = self.inputs[i+port_offset]
+            inputDrop = self.inputs[i + port_offset]
             table = portOptions[i][0]
             name = portOptions[i][1]
             data = drop_to_numpy(inputDrop)

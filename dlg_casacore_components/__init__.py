@@ -6,4 +6,9 @@ from dlg import droputils, utils
 from .ms import MSReadApp, MSCopyUpdateApp
 from .cbf_sdp import MSStreamingPlasmaProducer, MSStreamingPlasmaConsumer
 
-__all__ = ["MSReadApp", "MSCopyUpdateApp", "MSStreamingPlasmaProducer", "MSStreamingPlasmaConsumer"]
+__all__ = [
+    "MSReadApp",
+    "MSCopyUpdateApp",
+    "MSStreamingPlasmaProducer",
+    "MSStreamingPlasmaConsumer",
+]
