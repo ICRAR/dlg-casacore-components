@@ -70,7 +70,7 @@ class PortOptions:
 # @details Extracts measurement set tables to numpy arrays.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass appclass/daliuge_component_nifty.ms.MSReadApp/String/readonly/False/
+# @param[in] param/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False/
 #     \~English Application class
 # @param[in] param/row_start row_start/0/Integer/readwrite/False/
 #     \~English first row to read
@@ -147,7 +147,7 @@ class MSReadApp(BarrierAppDROP):
 # @details Copies an input measurement set to ouput and updates a specified table.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass appclass/daliuge_component_nifty.ms.MSCopyUpdateApp/String/readonly/False/
+# @param[in] param/appclass appclass/dlg_casacore_components.ms.MSCopyUpdateApp/String/readonly/False/
 #     \~English Application class
 # @param[in] param/start_row start_row/0/Integer/readwrite/False/
 #     \~English start row to update tables from
@@ -216,7 +216,7 @@ class MSCopyUpdateApp(BarrierAppDROP):
 # @details Updates the specified ms tables.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass appclass/daliuge_component_nifty.ms.MsUpdateApp/String/readonly/False/
+# @param[in] param/appclass appclass/dlg_casacore_components.ms.MsUpdateApp/String/readonly/False/
 #     \~English Application class
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop of a Measurement Set

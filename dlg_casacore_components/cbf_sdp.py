@@ -21,7 +21,7 @@ import logging
 import asyncio
 
 from dlg.drop import BarrierAppDROP, AppDROP
-from dlg.meta import dlg_string_param
+from dlg.meta import dlg_string_param, dlg_float_param
 from dlg.ddap_protocol import AppDROPStates
 from dlg.meta import dlg_component, dlg_batch_input
 from dlg.meta import dlg_batch_output, dlg_streaming_input
@@ -59,6 +59,7 @@ class MSStreamingPlasmaConsumer(AppDROP):
     )
 
     plasma_path = dlg_string_param("plasma_path", "/tmp/plasma")
+    process_timeout = dlg_float_param("process_timeout", 0.1)
 
     def initialize(self, **kwargs):
         self.config = {
@@ -90,7 +91,7 @@ class MSStreamingPlasmaConsumer(AppDROP):
             max_payload_misses=30,
             max_measurement_sets=1,
         )
-        runner.process_timeout = 0.1
+        runner.process_timeout = 1
         await runner.run()
 
     def dataWritten(self, uid, data):

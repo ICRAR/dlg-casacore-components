@@ -1,5 +1,6 @@
-daliuge-engine>=2.0
-daliuge-translator>=2.0
+daliuge-engine>=2.1
 numpy>=1.20.0
 pyarrow>=3.0.0
 python-casacore>=3.4.0
+-i https://artefact.skao.int/repository/pypi-all/simple
+ska-sdp-cbf-emulator[plasma]>=1.6.4
