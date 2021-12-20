@@ -21,7 +21,7 @@ import io
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import casacore
 import casacore.tables
@@ -60,8 +60,8 @@ class PortOptions:
     table: casacore.tables.table
     name: str
     dtype: str
-    rows: tuple[int, int]  # (start, end)
-    slicer: Union[slice, tuple[slice, slice, slice]]
+    rows: Tuple[int, int]  # (start, end)
+    slicer: Union[slice, Tuple[slice, slice, slice]]
 
 
 ##

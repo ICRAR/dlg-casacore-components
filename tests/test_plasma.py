@@ -34,7 +34,6 @@ from casacore import tables
 
 from dlg.drop import FileDROP, PlasmaDROP, InMemoryDROP
 from dlg import droputils
-from dlg.numpydroputils import NumpyDropUtils
 
 from cbf_sdp.ms_asserter import MSAsserter
 from dlg_casacore_components.plasma import MSPlasmaWriter, MSPlasmaReader
