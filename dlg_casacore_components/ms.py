@@ -21,7 +21,7 @@ import io
 import logging
 import os
 from dataclasses import dataclass
-from typing import Union
+from typing import Optional, Union
 
 import casacore
 import casacore.tables
@@ -71,10 +71,14 @@ class PortOptions:
 # @param category PythonApp
 # @param[in] param/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False/
 #     \~English Application class
-# @param[in] param/row_start row_start/0/Integer/readwrite/False/
-#     \~English first row to read
-# @param[in] param/row_end row_end/None/Integer/readwrite/False/
-#     \~English last row to read
+# @param[in] param/timestamp_start timestamp_start/0/Integer/readwrite/False/
+#     \~English first timestamp to read
+# @param[in] param/timestamp_end timestamp_end/None/Integer/readwrite/False/
+#     \~English last timestamp to read
+# @param[in] param/channel_start channel_start/0/Integer/readwrite/False/
+#     \~English first channel to read
+# @param[in] param/channel_end channel_end/None/Integer/readwrite/False/
+#     \~English last channel to read
 # @param[in] param/pol_start pol_start/0/Integer/readwrite/False/
 #     \~English first pol to read
 # @param[in] param/pol_end pol_end/None/Integer/readwrite/False/
@@ -102,8 +106,120 @@ class MSReadApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
+    timestamp_start: Optional[int] = dlg_int_param("timestamp_start", 0)
+    timestamp_end: Optional[int] = dlg_int_param("timestamp_start", None)
+    channel_start: Optional[int] = dlg_int_param("channel_start", 0)
+    channel_end: Optional[int] = dlg_int_param("channel_end", None)
+    pol_start: Optional[int] = dlg_int_param("pol_start", 0)
+    pol_end: Optional[int] = dlg_int_param("pol_end", None)
+
+    def run(self):
+        if len(self.inputs) < 1:
+            raise DaliugeException(
+                f"MSReadApp has {len(self.inputs)} input drops but requires at least 1"
+            )
+        self.ms_path = self.inputs[0].path
+        assert os.path.exists(self.ms_path)
+        assert casacore.tables.tableexists(self.ms_path)
+        msm = casacore.tables.table(self.ms_path, readonly=True)
+        mssw = casacore.tables.table(
+            msm.getkeyword("SPECTRAL_WINDOW"), readonly=True
+        )
+        antennas = casacore.tables.table(
+            msm.getkeyword("ANTENNA"), readonly=True
+        )
+        
+        #num_antennas = antennas.nrows()
+        num_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
+        has_autocorrelations = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
+        baselines = (num_antennas + 1) * num_antennas // 2 if has_autocorrelations else (num_antennas - 1) * num_antennas // 2
+        self.row_start = self.timestamp_start * baselines if self.timestamp_start is not None else None
+        self.row_end = self.timestamp_end * baselines if self.timestamp_end is not None else None
+        if self.row_end is None:
+            self.row_end = -1
+        row_range = (self.row_start, self.row_end)
+
+        # TODO: baseline slicing should be possible, use reshape and index based slicing for filtering
+        # (row, channels, pols)
+        tensor_slice = (
+            slice(0, None),
+            slice(self.channel_start, self.channel_end),
+            slice(self.pol_start, self.pol_end),
+        )
+
+        # table, name, dtype, slicer
+        portOptions = [
+            PortOptions(msm, "UVW", "float64", row_range, tensor_slice[0]),
+            PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]),
+            PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice),
+            PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice),
+            PortOptions(msm, "FLAG", "bool", row_range, tensor_slice),
+            PortOptions(msm, "WEIGHT", "float64", row_range, tensor_slice[0]),
+        ]
+
+        for i in range(len(portOptions)):
+            if len(self.outputs) >= i + 1:
+                outputDrop = self.outputs[i]
+                opt = portOptions[i]
+                data = (
+                    opt.table.query(
+                        columns=f"{opt.name} as COL",
+                        offset=opt.rows[0],
+                        limit=opt.rows[1],
+                    )
+                    .getcol("COL")[opt.slicer]
+                    .squeeze()
+                    .astype(opt.dtype)
+                )
+                numpy_to_drop(data, outputDrop)
+
+
+##
+# @brief MSReadRowApp
+# @details Extracts measurement set tables to numpy arrays.
+# @par EAGLE_START
+# @param category PythonApp
+# @param[in] param/appclass appclass/dlg_casacore_components.ms.MSReadRowApp/String/readonly/False/
+#     \~English Application class
+# @param[in] param/row_start row_start/0/Integer/readwrite/False/
+#     \~English first row to read
+# @param[in] param/row_end row_end/None/Integer/readwrite/False/
+#     \~English last row to read
+# @param[in] param/channel_start channel_start/0/Integer/readwrite/False/
+#     \~English first channel to read
+# @param[in] param/channel_end channel_end/None/Integer/readwrite/False/
+#     \~English last channel to read
+# @param[in] param/pol_start pol_start/0/Integer/readwrite/False/
+#     \~English first pol to read
+# @param[in] param/pol_end pol_end/None/Integer/readwrite/False/
+#     \~English last pol to read
+# @param[in] port/ms ms/PathBasedDrop/
+#     \~English PathBasedDrop to a Measurement Set
+# @param[out] port/uvw uvw/npy/
+#     \~English Port containing UVWs in npy format
+# @param[out] port/freq freq/npy/
+#     \~English Port containing frequencies in npy format
+# @param[out] port/vis vis/npy/
+#     \~English Port containing visibilities in npy format
+# @param[out] port/weight_spectrum weight_spectrum/npy/
+#     \~English Port containing weight spectrum in npy format
+# @param[out] port/flag flag/npy/
+#     \~English Port containing flags in npy format
+# @param[out] port/weight weight/npy/
+#     \~English Port containing weights in npy format
+# @par EAGLE_END
+class MSReadRowApp(BarrierAppDROP):
+    component_meta = dlg_component(
+        "MSReadApp",
+        "MeasurementSet Read App",
+        [dlg_batch_input("binary/*", [])],
+        [dlg_batch_output("binary/*", [])],
+        [dlg_streaming_input("binary/*")],
+    )
     row_start: int = dlg_int_param("row_start", 0)
     row_end: int = dlg_int_param("row_end", None)
+    channel_start: int = dlg_int_param("channel_start", 0)
+    channel_end: int = dlg_int_param("channel_end", None)
     pol_start: int = dlg_int_param("pol_start", 0)
     pol_end: int = dlg_int_param("pol_end", None)
 
@@ -124,33 +240,19 @@ class MSReadApp(BarrierAppDROP):
             self.row_end = -1
         row_range = (self.row_start, self.row_end)
 
-        # (baseline, channels, pols)
+        # (rows, channels, pols)
         tensor_slice = (
             slice(0, None),
-            slice(0, None),
+            slice(self.channel_start, self.channel_end),
             slice(self.pol_start, self.pol_end),
         )
 
         # table, name, dtype, slicer
         portOptions = [
             PortOptions(msm, "UVW", "float64", row_range, tensor_slice[0]),
-            PortOptions(
-                mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]
-            ),
-            PortOptions(
-                msm,
-                "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)",
-                "complex128",
-                row_range,
-                tensor_slice,
-            ),
-            PortOptions(
-                msm,
-                "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)",
-                "float64",
-                row_range,
-                tensor_slice,
-            ),
+            PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]),
+            PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice),
+            PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice),
             PortOptions(msm, "FLAG", "bool", row_range, tensor_slice),
             PortOptions(msm, "WEIGHT", "float64", row_range, tensor_slice[0]),
         ]
