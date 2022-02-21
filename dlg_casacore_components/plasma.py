@@ -56,9 +56,7 @@ class MSPlasmaReader(BarrierAppDROP):
         filename = os.path.basename(path)
 
         value = ms.pop("/")
-        with tables.table(
-            abs_path + "/" + filename, value[0], nrow=len(value[1])
-        ) as t:
+        with tables.table(abs_path + "/" + filename, value[0], nrow=len(value[1])) as t:
             with t.row() as r:
                 for idx, val in enumerate(value[1]):
                     r.put(idx, val)

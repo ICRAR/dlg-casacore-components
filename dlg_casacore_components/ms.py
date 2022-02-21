@@ -99,24 +99,18 @@ class MSReadApp(BarrierAppDROP):
 
     def run(self):
         if len(self.inputs) < 1:
-            raise DaliugeException(
-                f"MSReadApp has {len(self.inputs)} input drops but requires at least 1"
-            )
+            raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
         self.ms_path = self.inputs[0].path
         assert os.path.exists(self.ms_path)
         assert casacore.tables.tableexists(self.ms_path)
         msm = casacore.tables.table(self.ms_path, readonly=True)
-        mssw = casacore.tables.table(
-            msm.getkeyword("SPECTRAL_WINDOW"), readonly=True
-        )
-        antennas = casacore.tables.table(
-            msm.getkeyword("ANTENNA"), readonly=True
-        )
-        
-        #num_antennas = antennas.nrows()
-        num_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
+        mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
+
+        baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
         has_autocorrelations = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
-        baselines: int = (num_antennas + 1) * num_antennas // 2 if has_autocorrelations else (num_antennas - 1) * num_antennas // 2
+        baselines: int = (
+            (baseline_antennas + 1) * baseline_antennas // 2 if has_autocorrelations else (baseline_antennas - 1) * baseline_antennas // 2
+        )
         row_start = self.timestamp_start * baselines
         row_end = self.timestamp_end * baselines if self.timestamp_end is not None else -1
         row_range = (row_start, row_end)
@@ -207,17 +201,13 @@ class MSReadRowApp(BarrierAppDROP):
 
     def run(self):
         if len(self.inputs) < 1:
-            raise DaliugeException(
-                f"MSReadApp has {len(self.inputs)} input drops but requires at least 1"
-            )
-        #assert isinstance(self.inputs[0], PathBasedDrop)
+            raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
+        # assert isinstance(self.inputs[0], PathBasedDrop)
         self.ms_path = self.inputs[0].path
         assert os.path.exists(self.ms_path)
         assert casacore.tables.tableexists(self.ms_path)
         msm = casacore.tables.table(self.ms_path, readonly=True)
-        mssw = casacore.tables.table(
-            msm.getkeyword("SPECTRAL_WINDOW"), readonly=True
-        )
+        mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
         # NOTE: -1 row end selects the end row
         row_range = (self.row_start, self.row_end)
 
@@ -307,25 +297,17 @@ class MSCopyUpdateApp(BarrierAppDROP):
 
     def updateOutputs(self):
         for outputDrop in self.outputs:
-            msm = casacore.tables.table(
-                outputDrop.path, readonly=False
-            )
+            msm = casacore.tables.table(outputDrop.path, readonly=False)
 
-            portOptions = [
-                (msm, "DATA")
-            ]
+            portOptions = [(msm, "DATA")]
             port_offset = 1
             for i in range(len(self.inputs) - port_offset):
                 inputDrop = self.inputs[i + port_offset]
                 table = portOptions[i][0]
                 name = portOptions[i][1]
                 data = load_numpy(inputDrop)
-                num_rows = (
-                    data.shape[0] if self.num_rows is None else self.num_rows
-                )
-                table.col(name).putcol(
-                    data, startrow=self.start_row, nrow=num_rows
-                )
+                num_rows = data.shape[0] if self.num_rows is None else self.num_rows
+                table.col(name).putcol(data, startrow=self.start_row, nrow=num_rows)
 
 
 ##
@@ -356,9 +338,7 @@ class MSUpdateApp(BarrierAppDROP):
         self.updateOutputs()
 
     def updateOutputs(self):
-        msm = casacore.tables.table(
-            self.inputs[0].path, readonly=False
-        )  # main table
+        msm = casacore.tables.table(self.inputs[0].path, readonly=False)  # main table
 
         portOptions = [
             (msm, "DATA"),

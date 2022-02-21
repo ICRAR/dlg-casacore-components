@@ -21,23 +21,22 @@ import logging
 
 import dlg.droputils
 
-from dlg.drop import AppDROP, BarrierAppDROP
+from dlg.drop import BarrierAppDROP
 from dlg.meta import (
     dlg_batch_input,
     dlg_batch_output,
     dlg_component,
     dlg_streaming_input,
-    dlg_float_param,
     dlg_string_param,
 )
 import casacore.tables
 
 logger = logging.getLogger(__name__)
 
+
 ##
 # @brief TaqlColApp
-# @details Stream Measurement Set one correlator timestep at a time
-# via sdp plasma consumer.
+# @details Queries a single Measurement Set table column to a .npy drop
 # @par EAGLE_START
 # @param category PythonApp
 # @param[in] param/plasma_path Plasma Path//String/readwrite/
@@ -64,7 +63,7 @@ class TaqlColApp(BarrierAppDROP):
 
     def initialize(self, **kwargs):
         super().initialize(**kwargs)
-    
+
     def run(self):
         db = casacore.tables.table(self.inputs[0].path)
         if len(self.inputs) > 1:
@@ -72,12 +71,12 @@ class TaqlColApp(BarrierAppDROP):
             self.offset = indexes[0]
             self.limit = indexes[-1]
         data = db.query(
-                    self.where,
-                    columns=f"{self.column} as result",
-                    sortlist=self.orderby,
-                    limit=self.limit,
-                    offset=self.offset)\
-                 .getcol("result")
+            self.where,
+            columns=f"{self.column} as result",
+            sortlist=self.orderby,
+            limit=self.limit,
+            offset=self.offset,
+        ).getcol("result")
         for drop in self.outputs:
             dlg.droputils.save_numpy(drop, data)
 

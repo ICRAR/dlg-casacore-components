@@ -42,18 +42,14 @@ from dlg_casacore_components.cbf_sdp import (
     MSStreamingPlasmaProducer,
 )
 
-logging.basicConfig(
-    level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)]
-)
+logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 
 test_ms_dir = Path(__file__).parent.absolute() / "data/test_ms.tar.gz"
 
 
 class CRCAppTests(unittest.TestCase):
     def setUp(self):
-        self.store = subprocess.Popen(
-            ["plasma_store", "-m", "100000000", "-s", "/tmp/plasma"]
-        )
+        self.store = subprocess.Popen(["plasma_store", "-m", "100000000", "-s", "/tmp/plasma"])
 
     def tearDown(self):
         self.store.terminate()
