@@ -4,3 +4,4 @@ pyarrow>=3.0.0
 python-casacore>=3.4.0
 -i https://artefact.skao.int/repository/pypi-all/simple
 ska-sdp-cbf-emulator[plasma]>=1.6.9
+ska-sdp-dal-schemas>=0.2.3
