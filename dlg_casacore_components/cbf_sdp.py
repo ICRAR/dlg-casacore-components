@@ -20,10 +20,12 @@
 import asyncio
 import logging
 from multiprocessing import Lock
+import sys
 from threading import Thread
 from overrides import overrides
 
-from cbf_sdp import icd, msutils, packetiser, consumers, plasma_processor, utils
+import ska_ser_logging
+from cbf_sdp import icd, msutils, packetiser, plasma_processor, utils
 from cbf_sdp.consumers import plasma_writer
 from cbf_sdp.config import create_config_parser
 from dlg.ddap_protocol import AppDROPStates
@@ -37,8 +39,8 @@ from dlg.meta import (
     dlg_string_param,
 )
 
+#ska_ser_logging.configure_logging(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
 
 ##
 # @brief MSStreamingPlasmaProcessor
@@ -63,7 +65,8 @@ class MSStreamingPlasmaProcessor(AppDROP):
     )
 
     plasma_path: str = dlg_string_param("plasma_path", "/tmp/plasma")
-    process_timeout: float = dlg_float_param("process_timeout", 0.1)
+    processor_timeout: float = dlg_float_param("process_timeout", 1.0)
+    processor_max_payloads: int = dlg_float_param("processor_max_payloads", None)
 
     def initialize(self, **kwargs):
         self.thread = None
@@ -75,13 +78,15 @@ class MSStreamingPlasmaProcessor(AppDROP):
     async def _run_processor(self):
         if len(self.outputs) < 1:
             raise Exception(f"At least one output MS should have been connected to {self!r}")
-        self.output_file = self.outputs[0]._path
+        output_file = self.outputs[0]._path
 
         runner = plasma_processor.Runner(
-            output_ms=self.output_file,
+            output_ms=output_file,
             plasma_socket=self.plasma_path,
-            payload_timeout=30,
+            payload_timeout=self.processor_timeout,
+            max_payloads=self.processor_max_payloads,
             max_ms=1,
+            use_plasma_ms=False
         )
         await runner.run()
 
@@ -97,7 +102,7 @@ class MSStreamingPlasmaProcessor(AppDROP):
                 self.thread.start()
                 self.started = True
 
-                logger.info("MSStreamingPlasmaprocessorr in RUNNING State")
+                logger.info("MSStreamingPlasmaProcessor in RUNNING State")
                 self.execStatus = AppDROPStates.RUNNING
 
     @overrides
@@ -108,7 +113,7 @@ class MSStreamingPlasmaProcessor(AppDROP):
             move_to_finished = self.complete_called == n_inputs
 
         if move_to_finished:
-            logger.info("MSStreamingPlasmaprocessorr in FINISHED State")
+            logger.info("MSStreamingPlasmaProcessor in FINISHED State")
             self.execStatus = AppDROPStates.FINISHED
             self._notifyAppIsFinished()
             self.thread.join()
@@ -177,7 +182,7 @@ class MSPlasmaStreamingConsumer(BarrierAppDROP):
 
 ##
 # @brief MSStreamingPlasmaProducer
-# @details Simulates a plasma packetizer-consumer for sdp receive workflows.
+# @details Simulates a plasma packetizer-consumer for sdp receive workflows without SPEAD2
 # @par EAGLE_START
 # @param category PythonApp
 # @param tag daliuge
@@ -216,13 +221,11 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
         self.config = create_config_parser()
         self.config["reception"] = {
             "consumer": "plasma_writer",
-            "test_entry": 5
+            "test_entry": 5,
+            "plasma_path": self.plasma_path
         }
 
     async def _run_producer(self):
-        if self.plasma_path:
-            self.config["reception"]["plasma_path"] = self.plasma_path
-
         c = plasma_writer.consumer(self.config, utils.FakeTM(self.input_file))
         while not c.find_processors():
             await asyncio.sleep(0.1)
@@ -234,7 +237,6 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
             payload.channel_count = len(vis)
             payload.visibilities = vis
             await c.consume(payload)
-            # await asyncio.sleep(0.01)
 
             # For for the response to arrive
             await asyncio.get_event_loop().run_in_executor(
