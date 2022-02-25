@@ -24,7 +24,7 @@ from threading import Thread
 from overrides import overrides
 
 # import ska_ser_logging
-from cbf_sdp import icd, msutils, packetiser, plasma_processor, utils
+from cbf_sdp import icd, msutils, plasma_processor, utils
 from cbf_sdp.consumers import plasma_writer
 from cbf_sdp.config import create_config_parser
 from dlg.ddap_protocol import AppDROPStates
@@ -116,7 +116,8 @@ class MSStreamingPlasmaProcessor(AppDROP):
             logger.info("MSStreamingPlasmaProcessor in FINISHED State")
             self.execStatus = AppDROPStates.FINISHED
             self._notifyAppIsFinished()
-            self.thread.join()
+            if self.thread:
+                self.thread.join()
 
 
 ##
@@ -251,24 +252,3 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
         self.outputs[0].write(b"init")
         loop = asyncio.new_event_loop()
         loop.run_until_complete(self._run_producer())
-
-
-##
-# @brief MSPlasmaStreamingPacketiser
-# class MSPlasmaStreamingPacketiser(AppDROP):
-#     component_meta = dlg_component(
-#         "MSPlasmaStreamingProducer",
-#         "MS Plasma Streaming Producer",
-#         [dlg_batch_input("binary/*", [])],
-#         [dlg_batch_output("binary/*", [])],
-#         [dlg_streaming_input("binary/*")],
-#     )
-
-#     input_file: str = dlg_string_param("input_file", "")
-
-#     def initialize(self, **kwargs):
-#         return super().initialize(**kwargs)
-
-#     def run(self):
-#         config = []
-#         sending = packetiser.packetise(config, self.input_file)
