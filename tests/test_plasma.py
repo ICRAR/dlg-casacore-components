@@ -46,6 +46,7 @@ logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdo
 
 INPUT_MS_ARCHIVE = Path(__file__).parent.absolute() / "data/test_ms.tar.gz"
 
+
 class CRCAppTests(unittest.TestCase):
     def setUp(self):
         self.store = subprocess.Popen(["plasma_store", "-m", "100000000", "-s", "/tmp/plasma"])
@@ -112,19 +113,21 @@ class CRCAppTests(unittest.TestCase):
 
     def test_plasma_stream(self):
         with TemporaryDirectory() as td:
-            in_filepath = Path(td)/"test.ms"
-            out_filepath = Path(td)/"output.ms"
+            in_filepath = Path(td) / "test.ms"
+            out_filepath = Path(td) / "output.ms"
 
             with tarfile.open(INPUT_MS_ARCHIVE, "r") as ref:
                 ref.extractall(td)
             assert Path.is_dir(in_filepath), f"{in_filepath}"
 
             prod = MSStreamingPlasmaProducer("1", "1")
-            cons = MSStreamingPlasmaProcessor("2", "2",
+            cons = MSStreamingPlasmaProcessor(
+                "2",
+                "2",
                 processor_max_payloads=133,
                 # TODO: polling currently not blocking correctly at
                 # 1s intervals and timing out
-                processor_timeout=None
+                processor_timeout=None,
             )
             drop = InMemoryDROP("3", "3")
             ms_in = FileDROP("4", "4", filepath=str(in_filepath))
@@ -144,8 +147,8 @@ class CRCAppTests(unittest.TestCase):
 
     def test_plasma_writer(self):
         with TemporaryDirectory() as td:
-            in_filepath = Path(td)/"test.ms"
-            out_filepath = Path(td)/"copy.ms"
+            in_filepath = Path(td) / "test.ms"
+            out_filepath = Path(td) / "copy.ms"
 
             with tarfile.open(INPUT_MS_ARCHIVE, "r") as ref:
                 ref.extractall(td)

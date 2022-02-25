@@ -6,13 +6,11 @@ RUN apt install -y python3-numpy
 # cache packages
 RUN pip3 install daliuge-engine pyarrow python-casacore
 RUN pip3 install ska-sdp-dal-schemas ska-sdp-cbf-emulator>=1.6.11 -i https://artefact.skao.int/repository/pypi-all/simple
-
 RUN pip3 install pytest coverage flake8 black isort pytest-cov codecov mypy gitchangelog mkdocs
-
 
 COPY . /app
 WORKDIR /app
 ARG PYPI_REPOSITORY_URL=https://artefact.skao.int/repository/pypi-all
 RUN pip3 install --extra-index-url=$PYPI_REPOSITORY_URL/simple .
 RUN pip3 install -r requirements-test.txt
-CMD ["dlg_casacore_components"]
+CMD pytest && make lint

@@ -86,7 +86,7 @@ class MSStreamingPlasmaProcessor(AppDROP):
             payload_timeout=self.processor_timeout,
             max_payloads=self.processor_max_payloads,
             max_ms=1,
-            use_plasma_ms=False
+            use_plasma_ms=False,
         )
         await runner.run()
 
@@ -220,11 +220,7 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
     def initialize(self, **kwargs):
         super().initialize(**kwargs)
         self.config = create_config_parser()
-        self.config["reception"] = {
-            "consumer": "plasma_writer",
-            "test_entry": 5,
-            "plasma_path": self.plasma_path
-        }
+        self.config["reception"] = {"consumer": "plasma_writer", "test_entry": 5, "plasma_path": self.plasma_path}
 
     async def _run_producer(self):
         c = plasma_writer.consumer(self.config, utils.FakeTM(self.input_file))
@@ -240,9 +236,7 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
             await c.consume(payload)
 
             # For for the response to arrive
-            await asyncio.get_event_loop().run_in_executor(
-                None, c.get_response, c.output_refs.pop(0), 10
-            )
+            await asyncio.get_event_loop().run_in_executor(None, c.get_response, c.output_refs.pop(0), 10)
 
     def run(self):
         if len(self.inputs) < 1:
