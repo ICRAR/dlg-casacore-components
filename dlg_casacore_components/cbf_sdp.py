@@ -20,11 +20,10 @@
 import asyncio
 import logging
 from multiprocessing import Lock
-import sys
 from threading import Thread
 from overrides import overrides
 
-import ska_ser_logging
+# import ska_ser_logging
 from cbf_sdp import icd, msutils, packetiser, plasma_processor, utils
 from cbf_sdp.consumers import plasma_writer
 from cbf_sdp.config import create_config_parser
@@ -39,8 +38,9 @@ from dlg.meta import (
     dlg_string_param,
 )
 
-#ska_ser_logging.configure_logging(level=logging.DEBUG)
+# ska_ser_logging.configure_logging(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 
 ##
 # @brief MSStreamingPlasmaProcessor
@@ -255,20 +255,20 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
 
 ##
 # @brief MSPlasmaStreamingPacketiser
-class MSPlasmaStreamingPacketiser(AppDROP):
-    component_meta = dlg_component(
-        "MSPlasmaStreamingProducer",
-        "MS Plasma Streaming Producer",
-        [dlg_batch_input("binary/*", [])],
-        [dlg_batch_output("binary/*", [])],
-        [dlg_streaming_input("binary/*")],
-    )
-    
-    input_file: str = dlg_string_param("input_file", "")
+# class MSPlasmaStreamingPacketiser(AppDROP):
+#     component_meta = dlg_component(
+#         "MSPlasmaStreamingProducer",
+#         "MS Plasma Streaming Producer",
+#         [dlg_batch_input("binary/*", [])],
+#         [dlg_batch_output("binary/*", [])],
+#         [dlg_streaming_input("binary/*")],
+#     )
 
-    def initialize(self, **kwargs):
-        return super().initialize(**kwargs)
-    
-    def run(self):
-        config = []
-        sending = packetiser.packetise(config, self.input_file)
+#     input_file: str = dlg_string_param("input_file", "")
+
+#     def initialize(self, **kwargs):
+#         return super().initialize(**kwargs)
+
+#     def run(self):
+#         config = []
+#         sending = packetiser.packetise(config, self.input_file)
