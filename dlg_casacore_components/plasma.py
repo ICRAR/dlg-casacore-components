@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # @par EAGLE_END
 class MSPlasmaReader(BarrierAppDROP):
     def initialize(self, **kwargs):
-        super(MSPlasmaReader, self).initialize(**kwargs)
+        super().initialize(**kwargs)
 
     def _write_table(self, ms, path, delete=True):
         if delete is True:
@@ -108,7 +108,7 @@ class MSPlasmaWriter(BarrierAppDROP):
     pickle = dlg_bool_param("pickle", True)
 
     def initialize(self, **kwargs):
-        super(MSPlasmaWriter, self).initialize(**kwargs)
+        super().initialize(**kwargs)
 
     def _read_table(self, table_path, ms, table_name=None):
         if not table_name:
