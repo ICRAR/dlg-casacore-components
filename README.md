@@ -26,7 +26,7 @@ docker exec -t daliuge-engine bash -c 'pip install --prefix=$DLG_ROOT/code dlg_c
 
 ## Usage
 
-For example the MyComponent component will be available to the engine when you specify 
+For example the MyComponent component will be available to the engine when you specify
 
 ```python
 from dlg_casacore_components import MSReadApp
@@ -35,3 +35,10 @@ MSReadApp('a', 'a')
 
 in the AppClass field of a Python Branch component. The EAGLE palette associated with these components are also generated and can be loaded directly into EAGLE. In that case all the fields are correctly populated for the respective components.
 
+## Linting and Testing
+
+Testing and linting is performed per branch push. Additionally this can be performed locally with docker using the following command:
+
+```bash
+docker build -t dlg-casacore-components . -f debian.Containerfile && docker run -it --rm --shm-size 1G dlg-casacore-components
+```
