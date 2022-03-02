@@ -1,4 +1,4 @@
-.ONESHELL:
+
 ENV_PREFIX=$(shell python -c "if __import__('pathlib').Path('.venv/bin/pip').exists(): print('.venv/bin/')")
 USING_POETRY=$(shell grep "tool.poetry" pyproject.toml && echo "yes")
 
@@ -27,14 +27,14 @@ install:          ## Install the project in dev mode.
 .PHONY: fmt
 fmt:              ## Format code using black & isort.
 	$(ENV_PREFIX)isort dlg_casacore_components/
-	$(ENV_PREFIX)black -l 79 dlg_casacore_components/
-	$(ENV_PREFIX)black -l 79 tests/
+	$(ENV_PREFIX)black -l 140 dlg_casacore_components/
+	$(ENV_PREFIX)black -l 140 tests/
 
 .PHONY: lint
 lint:             ## Run pep8, black, mypy linters.
 	$(ENV_PREFIX)flake8 dlg_casacore_components/
-	$(ENV_PREFIX)black -l 79 --check dlg_casacore_components/
-	$(ENV_PREFIX)black -l 79 --check tests/
+	$(ENV_PREFIX)black -l 140 --check dlg_casacore_components/
+	$(ENV_PREFIX)black -l 140 --check tests/
 	$(ENV_PREFIX)mypy --ignore-missing-imports dlg_casacore_components/
 
 .PHONY: test

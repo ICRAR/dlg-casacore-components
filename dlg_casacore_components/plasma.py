@@ -17,34 +17,17 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
 import io
-import numpy as np
 import logging
-import asyncio
+import os
 
-from dlg.drop import BarrierAppDROP, AppDROP
-from dlg.meta import dlg_string_param
-from dlg.ddap_protocol import AppDROPStates
-from dlg.meta import (
-    dlg_component,
-    dlg_batch_input,
-    dlg_batch_output,
-    dlg_streaming_input,
-    dlg_bool_param,
-)
-
-from threading import Thread
-from multiprocessing import Lock
+import numpy as np
 from casacore import tables
-
-from cbf_sdp.consumers import plasma_writer
-from cbf_sdp import plasma_processor
-from cbf_sdp import utils, icd, msutils
+from dlg.drop import BarrierAppDROP
+from dlg.meta import dlg_bool_param
 
 logger = logging.getLogger(__name__)
 
-import time
 
 ##
 # @brief MSPlasmaReader
@@ -60,7 +43,7 @@ import time
 # @par EAGLE_END
 class MSPlasmaReader(BarrierAppDROP):
     def initialize(self, **kwargs):
-        super(MSPlasmaReader, self).initialize(**kwargs)
+        super().initialize(**kwargs)
 
     def _write_table(self, ms, path, delete=True):
         if delete is True:
@@ -125,7 +108,7 @@ class MSPlasmaWriter(BarrierAppDROP):
     pickle = dlg_bool_param("pickle", True)
 
     def initialize(self, **kwargs):
-        super(MSPlasmaWriter, self).initialize(**kwargs)
+        super().initialize(**kwargs)
 
     def _read_table(self, table_path, ms, table_name=None):
         if not table_name:
