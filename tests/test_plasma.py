@@ -17,14 +17,13 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
+
 from tempfile import TemporaryDirectory
 import time
 import sys
 import logging
 import tarfile
 import binascii
-import shutil
 import subprocess
 import unittest
 from pathlib import Path
@@ -33,7 +32,7 @@ import pyarrow.plasma as plasma
 from casacore import tables
 
 from dlg.drop import FileDROP, PlasmaDROP, InMemoryDROP
-from dlg import droputils
+import dlg.droputils as droputils
 
 from cbf_sdp.ms_asserter import MSAsserter
 from dlg_casacore_components.plasma import MSPlasmaWriter, MSPlasmaReader
@@ -44,6 +43,7 @@ from dlg_casacore_components.cbf_sdp import (
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 
+INPUT_MS_NAME = "test.ms"
 INPUT_MS_ARCHIVE = Path(__file__).parent.absolute() / "data/test_ms.tar.gz"
 
 
@@ -113,7 +113,7 @@ class CRCAppTests(unittest.TestCase):
 
     def test_plasma_stream(self):
         with TemporaryDirectory() as td:
-            in_filepath = Path(td) / "test.ms"
+            in_filepath = Path(td) / INPUT_MS_NAME
             out_filepath = Path(td) / "output.ms"
 
             with tarfile.open(INPUT_MS_ARCHIVE, "r") as ref:
@@ -147,8 +147,8 @@ class CRCAppTests(unittest.TestCase):
 
     def test_plasma_writer(self):
         with TemporaryDirectory() as td:
-            in_filepath = Path(td) / "test.ms"
-            out_filepath = Path(td) / "copy.ms"
+            in_filepath = Path(td) / INPUT_MS_NAME
+            out_filepath = Path(td) / "ouptut.ms"
 
             with tarfile.open(INPUT_MS_ARCHIVE, "r") as ref:
                 ref.extractall(td)
