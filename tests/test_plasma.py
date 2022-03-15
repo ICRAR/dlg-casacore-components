@@ -48,11 +48,26 @@ INPUT_MS_ARCHIVE = Path(__file__).parent.absolute() / "data/test_ms.tar.gz"
 
 
 class CRCAppTests(unittest.TestCase):
+    td: TemporaryDirectory
+    in_filepath: Path
+    out_filepath: Path
+
     def setUp(self):
+        # Creates a temporary directory with input ms extracted at the start of
+        # each test method
+        self.td = TemporaryDirectory()
+        self.in_filepath = Path(self.td.name) / INPUT_MS_NAME
+        self.out_filepath = Path(self.td.name) / "output.ms"
+        with tarfile.open(INPUT_MS_ARCHIVE, "r") as ref:
+            ref.extractall(self.td.name)
+        assert Path.is_dir(self.in_filepath), f"{self.in_filepath} does not exist"
+
+        # Creates a plasma store service
         self.store = subprocess.Popen(["plasma_store", "-m", "100000000", "-s", "/tmp/plasma"])
 
     def tearDown(self):
         self.store.terminate()
+        self.td.cleanup()
 
     def compare_measurement_sets(self, in_file, out_file):
         asserter = type("asserter", (MSAsserter, unittest.TestCase), {})()
@@ -112,69 +127,53 @@ class CRCAppTests(unittest.TestCase):
         np.testing.assert_array_equal(indata, outdata)
 
     def test_plasma_stream(self):
-        with TemporaryDirectory() as td:
-            in_filepath = Path(td) / INPUT_MS_NAME
-            out_filepath = Path(td) / "output.ms"
+        prod = MSStreamingPlasmaProducer("1", "1")
+        cons = MSStreamingPlasmaProcessor(
+            "2",
+            "2",
+            processor_max_payloads=133,
+            # TODO: polling currently not blocking at
+            # 1s intervals and timing out
+            processor_timeout=None,
+        )
+        drop = InMemoryDROP("3", "3")
+        ms_in = FileDROP("4", "4", filepath=str(self.in_filepath))
+        ms_out = FileDROP("5", "5", filepath=str(self.out_filepath))
+        prod.addInput(ms_in)
+        prod.addOutput(drop)
+        drop.addStreamingConsumer(cons)
+        cons.addOutput(ms_out)
 
-            with tarfile.open(INPUT_MS_ARCHIVE, "r") as ref:
-                ref.extractall(td)
-            assert Path.is_dir(in_filepath), f"{in_filepath}"
+        with droputils.DROPWaiterCtx(self, cons, 1000):
+            prod.async_execute()
 
-            prod = MSStreamingPlasmaProducer("1", "1")
-            cons = MSStreamingPlasmaProcessor(
-                "2",
-                "2",
-                processor_max_payloads=133,
-                # TODO: polling currently not blocking correctly at
-                # 1s intervals and timing out
-                processor_timeout=None,
-            )
-            drop = InMemoryDROP("3", "3")
-            ms_in = FileDROP("4", "4", filepath=str(in_filepath))
-            ms_out = FileDROP("5", "5", filepath=str(out_filepath))
-            prod.addInput(ms_in)
-            prod.addOutput(drop)
-            drop.addStreamingConsumer(cons)
-            cons.addOutput(ms_out)
-
-            with droputils.DROPWaiterCtx(self, cons, 1000):
-                prod.async_execute()
-
-            time.sleep(5)
-            assert Path.is_dir(in_filepath), f"{in_filepath}"
-            assert Path.is_dir(out_filepath), f"{out_filepath}"
-            self.compare_measurement_sets(str(in_filepath), str(out_filepath))
+        time.sleep(5)
+        assert Path.is_dir(self.in_filepath), f"{self.in_filepath}"
+        assert Path.is_dir(self.out_filepath), f"{self.out_filepath}"
+        self.compare_measurement_sets(str(self.in_filepath), str(self.out_filepath))
 
     def test_plasma_writer(self):
-        with TemporaryDirectory() as td:
-            in_filepath = Path(td) / INPUT_MS_NAME
-            out_filepath = Path(td) / "ouptut.ms"
+        a = FileDROP("a", "a", filepath=str(self.in_filepath))
+        b = MSPlasmaWriter("b", "b")
+        c = PlasmaDROP("c", "c")
+        d = MSPlasmaReader("d", "d")
+        e = FileDROP("e", "e", filepath=str(self.out_filepath))
 
-            with tarfile.open(INPUT_MS_ARCHIVE, "r") as ref:
-                ref.extractall(td)
-            assert Path.is_dir(in_filepath), f"{in_filepath}"
+        b.addInput(a)
+        b.addOutput(c)
+        d.addInput(c)
+        d.addOutput(e)
 
-            a = FileDROP("a", "a", filepath=str(in_filepath))
-            b = MSPlasmaWriter("b", "b")
-            c = PlasmaDROP("c", "c")
-            d = MSPlasmaReader("d", "d")
-            e = FileDROP("e", "e", filepath=str(out_filepath))
+        # Check the MS DATA content is the same as original
+        with droputils.DROPWaiterCtx(self, e, 5):
+            a.setCompleted()
+        # time.sleep(5)
 
-            b.addInput(a)
-            b.addOutput(c)
-            d.addInput(c)
-            d.addOutput(e)
+        # self.compare_ms(in_file, out_file)
+        self.compare_measurement_sets(str(self.in_filepath), str(self.out_filepath))
 
-            # Check the MS DATA content is the same as original
-            with droputils.DROPWaiterCtx(self, e, 5):
-                a.setCompleted()
-            # time.sleep(5)
-
-            # self.compare_ms(in_file, out_file)
-            self.compare_measurement_sets(str(in_filepath), str(out_filepath))
-
-            # check we can go from dataURL to plasma ID
-            client = plasma.connect("/tmp/plasma")
-            a = c.dataURL.split("//")[1]
-            a = binascii.unhexlify(a)
-            client.get_buffers([plasma.ObjectID(a)])
+        # check we can go from dataURL to plasma ID
+        client = plasma.connect("/tmp/plasma")
+        a = c.dataURL.split("//")[1]
+        a = binascii.unhexlify(a)
+        client.get_buffers([plasma.ObjectID(a)])

@@ -50,6 +50,8 @@ INPUT_MS_ARCHIVE = Path(__file__).parent.absolute() / "data/test_ms.tar.gz"
 
 class MSTests(unittest.TestCase):
     td: TemporaryDirectory
+    in_filepath: Path
+    out_filepath: Path
 
     def setUp(self):
         # Creates a temporary directory with input ms extracted at the start of
