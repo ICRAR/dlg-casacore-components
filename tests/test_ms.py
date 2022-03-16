@@ -41,6 +41,7 @@ from dlg_casacore_components.cbf_sdp import (
     MSStreamingPlasmaProcessor,
     MSStreamingPlasmaProducer,
 )
+from dlg_casacore_components.taql import TaqlApp, TaqlColApp
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 
@@ -145,3 +146,31 @@ class MSTests(unittest.TestCase):
         assert freq.shape == (4,)
         vis = droputils.load_numpy(visDrop)
         assert vis.shape == (20, 4, 4)
+
+    def test_taql_col(self):
+        ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
+        drop = TaqlColApp("2", "2", column="DATA", offset=0, limit=30)
+        visDrop = InMemoryDROP("vis", "vis")
+
+        drop.addInput(ms_in)
+        drop.addOutput(visDrop)
+
+        with droputils.DROPWaiterCtx(self, [visDrop], 5):
+            ms_in.setCompleted()
+
+        vis = droputils.load_numpy(visDrop)
+        assert vis.shape == (30, 4, 4)
+
+    def test_taql(self):
+        ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
+        drop = TaqlApp("2", "2", query="select DATA from $1 limit 30")
+        visDrop = InMemoryDROP("vis", "vis")
+
+        drop.addInput(ms_in)
+        drop.addOutput(visDrop)
+
+        with droputils.DROPWaiterCtx(self, [visDrop], 5):
+            ms_in.setCompleted()
+
+        vis = droputils.load_numpy(visDrop)
+        assert vis.shape == (30, 4, 4)

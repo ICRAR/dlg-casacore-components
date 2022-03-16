@@ -28,24 +28,35 @@ from dlg.meta import (
     dlg_component,
     dlg_streaming_input,
     dlg_string_param,
+    dlg_int_param
 )
 import casacore.tables
+import numpy as np 
 
 logger = logging.getLogger(__name__)
 
 
 ##
 # @brief TaqlColApp
-# @details Queries a single Measurement Set table column to a .npy drop
+# @details Queries a single measurement set table column to a .npy drop
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/plasma_path Plasma Path//String/readwrite/
-#     \~English Path to plasma store.
-# @param[in] param/appclass Application class/dlg_casacore_components.taql.TaqlColApp/String/readonly/
+# @param[in] cparam/appclass Application class/dlg_casacore_components.taql.TaqlColApp/String/readonly/
 #     \~English Application class
+# @param[in] aparam/column Column//String/readwrite/False//False/
+#     \~English Column expression
+# @param[in] aparam/where Where//String/readwrite/False//False/
+#     \~English Where expression
+# @param[in] aparam/orderby OrderBy//String/readwrite/False//False/
+#     \~English OrderBy expression
+# @param[in] aparam/offset Offset//Integer/readwrite/False//False/
+#     \~English Offset expression
+# @param[in] aparam/limit Limit//Integer/readwrite/False//False/
+#     \~English Limit expression
 # @param[in] port/ms MS/PathBasedDrop
+#     \~English MS input path
 # @param[out] port/array Array/npy/
-#     \~English MS output path
+#     \~English npy output
 # @par EAGLE_END
 class TaqlColApp(BarrierAppDROP):
     component_meta = dlg_component(
@@ -58,11 +69,8 @@ class TaqlColApp(BarrierAppDROP):
     column: str = dlg_string_param("column", None)
     where: str = dlg_string_param("where", None)
     orderby: str = dlg_string_param("orderby", None)
-    limit: str = dlg_string_param("limit", None)
-    offset: str = dlg_string_param("offset", None)
-
-    def initialize(self, **kwargs):
-        super().initialize(**kwargs)
+    offset: int = dlg_int_param("offset", None)
+    limit: int = dlg_int_param("limit", None)
 
     def run(self):
         db = casacore.tables.table(self.inputs[0].path)
@@ -81,11 +89,30 @@ class TaqlColApp(BarrierAppDROP):
             dlg.droputils.save_numpy(drop, data)
 
 
-# class TaqlApp(AppDROP):
-#     query: str = dlg_string_param("query", None)
-#     @overrides
-#     def run(self):
-#         db = casacore.tables.table(self.inputs[0].path)
-#         table = casacore.tables.taql(self.query, tables=[db])
-#         df = pandas.DataFrame.from_records()
-#         self.outputs[0].sav
+##
+# @brief TaqlApp
+# @details Queries a single measurement set table column to a .npy drop
+# @par EAGLE_START
+# @param category PythonApp
+# @param[in] param/appclass Application class/dlg_casacore_components.taql.TaqlColApp/String/readonly/
+#     \~English Application class
+# @param[in] aparam/query Query//String/readwrite/False//False/
+#     \~English Query expression using table variable '$1'
+# @param[in] port/ms MS/PathBasedDrop
+#     \~English MS input path
+# @param[out] port/array Array/npy/
+#     \~English npy output
+# @par EAGLE_END
+class TaqlApp(BarrierAppDROP):
+    query: str = dlg_string_param("query", None)
+
+    def run(self):
+        db = casacore.tables.table(self.inputs[0].path)
+        query = casacore.tables.taql(self.query, tables=[db], locals={"",""})
+        assert len(query.colnames()) == 1
+        for drop in self.outputs:
+            data = query.getcol(query.colnames()[0])
+            dlg.droputils.save_numpy(drop, data)
+        
+        #df = pandas.DataFrame.from_records()
+        #self.outputs[0].sav
