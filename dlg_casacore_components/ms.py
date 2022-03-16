@@ -100,10 +100,10 @@ class MSReadApp(BarrierAppDROP):
     def run(self):
         if len(self.inputs) < 1:
             raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
-        self.ms_path = self.inputs[0].path
-        assert os.path.exists(self.ms_path)
-        assert casacore.tables.tableexists(self.ms_path)
-        msm = casacore.tables.table(self.ms_path, readonly=True)
+        ms_path: str = self.inputs[0].path
+        assert os.path.exists(ms_path)
+        assert casacore.tables.tableexists(ms_path)
+        msm = casacore.tables.table(ms_path, readonly=True)
         mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
 
         baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
@@ -133,10 +133,9 @@ class MSReadApp(BarrierAppDROP):
             PortOptions(msm, "WEIGHT", "float64", row_range, tensor_slice[0]),
         ]
 
-        for i in range(len(portOptions)):
-            if len(self.outputs) >= i + 1:
+        for i, opt in enumerate(portOptions):
+            if i < len(self.outputs):
                 outputDrop = self.outputs[i]
-                opt = portOptions[i]
                 data = (
                     opt.table.query(
                         columns=f"{opt.name} as COL",
@@ -147,7 +146,7 @@ class MSReadApp(BarrierAppDROP):
                     .squeeze()
                     .astype(opt.dtype)
                 )
-                save_numpy(data, outputDrop)
+                save_numpy(outputDrop, data)
 
 
 ##
@@ -203,10 +202,10 @@ class MSReadRowApp(BarrierAppDROP):
         if len(self.inputs) < 1:
             raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
         # assert isinstance(self.inputs[0], PathBasedDrop)
-        self.ms_path = self.inputs[0].path
-        assert os.path.exists(self.ms_path)
-        assert casacore.tables.tableexists(self.ms_path)
-        msm = casacore.tables.table(self.ms_path, readonly=True)
+        ms_path = self.inputs[0].path
+        assert os.path.exists(ms_path)
+        assert casacore.tables.tableexists(ms_path)
+        msm = casacore.tables.table(ms_path, readonly=True)
         mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
         # NOTE: -1 row end selects the end row
         row_range = (self.row_start, self.row_end)
@@ -228,10 +227,9 @@ class MSReadRowApp(BarrierAppDROP):
             PortOptions(msm, "WEIGHT", "float64", row_range, tensor_slice[0]),
         ]
 
-        for i in range(len(portOptions)):
-            if len(self.outputs) >= i + 1:
+        for i, opt in enumerate(portOptions):
+            if i < len(self.outputs):
                 outputDrop = self.outputs[i]
-                opt = portOptions[i]
                 data = (
                     opt.table.query(
                         columns=f"{opt.name} as COL",
@@ -242,7 +240,7 @@ class MSReadRowApp(BarrierAppDROP):
                     .squeeze()
                     .astype(opt.dtype)
                 )
-                save_numpy(data, outputDrop)
+                save_numpy(outputDrop, data)
 
 
 ##
@@ -275,9 +273,9 @@ class MSCopyUpdateApp(BarrierAppDROP):
     num_rows: Optional[int] = dlg_int_param("num_rows", None)
 
     def run(self):
-        self.ms_path = self.inputs[0].path
-        assert os.path.exists(self.ms_path)
-        assert casacore.tables.tableexists(self.ms_path)
+        ms_path = self.inputs[0].path
+        assert os.path.exists(ms_path)
+        assert casacore.tables.tableexists(ms_path)
         self.copyOutputs()
         self.updateOutputs()
 
@@ -332,9 +330,9 @@ class MSUpdateApp(BarrierAppDROP):
     )
 
     def run(self):
-        self.ms_path = self.inputs[0].path
-        assert os.path.exists(self.ms_path)
-        assert casacore.tables.tableexists(self.ms_path)
+        ms_path = self.inputs[0].path
+        assert os.path.exists(ms_path)
+        assert casacore.tables.tableexists(ms_path)
         self.updateOutputs()
 
     def updateOutputs(self):
