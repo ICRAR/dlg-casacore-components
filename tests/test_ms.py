@@ -19,29 +19,17 @@
 #
 
 from tempfile import TemporaryDirectory
-import time
 import sys
 import logging
 import tarfile
-import binascii
-import subprocess
 import unittest
 from pathlib import Path
 
-import pyarrow.plasma as plasma
-from casacore import tables
-
-from dlg.drop import FileDROP, PlasmaDROP, InMemoryDROP
+from dlg.drop import FileDROP, InMemoryDROP
 import dlg.droputils as droputils
 
-from cbf_sdp.ms_asserter import MSAsserter
 from dlg_casacore_components.ms import MSReadApp, MSReadRowApp
-from dlg_casacore_components.plasma import MSPlasmaWriter, MSPlasmaReader
-from dlg_casacore_components.cbf_sdp import (
-    MSStreamingPlasmaProcessor,
-    MSStreamingPlasmaProducer,
-)
-from dlg_casacore_components.taql import TaqlApp, TaqlColApp
+from dlg_casacore_components.taql import MSQueryApp, TaqlColApp
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 
@@ -147,9 +135,9 @@ class MSTests(unittest.TestCase):
         vis = droputils.load_numpy(visDrop)
         assert vis.shape == (20, 4, 4)
 
-    def test_taql_col(self):
+    def test_ms_query(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = TaqlColApp("2", "2", column="DATA", offset=0, limit=30)
+        drop = MSQueryApp("2", "2", column="DATA", offset=0, limit=30)
         visDrop = InMemoryDROP("vis", "vis")
 
         drop.addInput(ms_in)
@@ -163,7 +151,7 @@ class MSTests(unittest.TestCase):
 
     def test_taql(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = TaqlApp("2", "2", query="select DATA from $1 limit 30")
+        drop = TaqlColApp("2", "2", query="select DATA from $1 limit 30")
         visDrop = InMemoryDROP("vis", "vis")
 
         drop.addInput(ms_in)
