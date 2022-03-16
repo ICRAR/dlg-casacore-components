@@ -80,21 +80,21 @@ class MSTests(unittest.TestCase):
         drop.addOutput(uvwDrop)
         drop.addOutput(freqDrop)
         drop.addOutput(visDrop)
-        #drop.addOutput(weightSpectrumDrop)
-        #drop.addOutput(flagDrop)
-        #drop.addOutput(weightDrop)
+        # drop.addOutput(weightSpectrumDrop)
+        # drop.addOutput(flagDrop)
+        # drop.addOutput(weightDrop)
 
         with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
             ms_in.setCompleted()
 
         uvw = droputils.load_numpy(uvwDrop)
-        assert uvw.shape == (1330,3)
+        assert uvw.shape == (1330, 3)
         freq = droputils.load_numpy(freqDrop)
         assert freq.shape == (4,)
         vis = droputils.load_numpy(visDrop)
-        assert vis.shape == (1330,4,4)
+        assert vis.shape == (1330, 4, 4)
 
-        # TODO: sample data does not container weight spectrum 
+        # TODO: sample data does not container weight spectrum
         # weightSpectrum = droputils.load_numpy(weightSpectrumDrop)
         # assert weightSpectrum.shape == (1330,4,4)
         # flag = droputils.load_numpy(flagDrop)
@@ -118,11 +118,11 @@ class MSTests(unittest.TestCase):
             ms_in.setCompleted()
 
         uvw = droputils.load_numpy(uvwDrop)
-        assert uvw.shape == (10,3)
+        assert uvw.shape == (10, 3)
         freq = droputils.load_numpy(freqDrop)
         assert freq.shape == (4,)
         vis = droputils.load_numpy(visDrop)
-        assert vis.shape == (10,4,4)
+        assert vis.shape == (10, 4, 4)
 
     def test_ms_read_row(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
@@ -140,8 +140,8 @@ class MSTests(unittest.TestCase):
             ms_in.setCompleted()
 
         uvw = droputils.load_numpy(uvwDrop)
-        assert uvw.shape == (20,3)
+        assert uvw.shape == (20, 3)
         freq = droputils.load_numpy(freqDrop)
         assert freq.shape == (4,)
         vis = droputils.load_numpy(visDrop)
-        assert vis.shape == (20,4,4)
+        assert vis.shape == (20, 4, 4)
