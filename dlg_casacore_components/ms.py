@@ -21,16 +21,14 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass
-from re import A
-from threading import Thread
 import time
-from typing import AsyncIterable, List, Optional, Tuple, Union
+from typing import AsyncIterable, Optional, Tuple, Union
 
 import casacore
 import casacore.tables
 import numpy as np
 from dlg.droputils import load_npy, save_npy, save_npy_stream, copyDropContents
-from dlg.drop import BarrierAppDROP, ContainerDROP, InputFiredAppDROP, DataDROP
+from dlg.drop import BarrierAppDROP, ContainerDROP, InputFiredAppDROP
 from dlg.exceptions import DaliugeException
 from dlg.meta import (
     dlg_batch_input,
@@ -51,7 +49,7 @@ class PortOptions:
     name: str
     dtype: str
     rows: Tuple[int, int]  # (start, end) # table row slicer
-    slicer: Union[slice, Tuple[slice, slice, slice]] # tensor slicer
+    slicer: Union[slice, Tuple[slice, slice, slice]]  # tensor slicer
 
 
 def opt2array(opt):
@@ -138,7 +136,6 @@ class MSReadApp(BarrierAppDROP):
         row_range = (row_start, row_end)
 
         # TODO: baseline slicing should be possible, use 4D reshape and index based slicing
-        
         default_slice = slice(0, None)
         # (row, channels, pols)
         tensor_slice = (
@@ -158,7 +155,7 @@ class MSReadApp(BarrierAppDROP):
         ]
 
         for i, opt in enumerate(portOptions[0:len(self.outputs)]):
-                save_npy(self.outputs[i], opt2array(opt))
+            save_npy(self.outputs[i], opt2array(opt))
 
 
 ##
@@ -194,7 +191,6 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
 
         time_array = msm.getcol("TIME")
         start_time = time_array[0]
-        end_time = time_array[-1]
 
         time_index_start = 0
         time_index_end = len(time_array)
@@ -218,7 +214,7 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
         portOptions = [
             PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1])
         ]
-        output_offset = 1 # 0 reserved for end drop
+        output_offset = 1  # 0 reserved for end drop
         for i, opt in enumerate(portOptions[0:len(self.outputs)]):
             save_npy(self.outputs[output_offset+i], opt2array(opt))
 
@@ -228,36 +224,37 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
         # NOTE: naturally the first message would fail to keep up for the first run as the
         # wait time is ~0. Adding a prequery time allowance should let all the generators
         # buffer and wait.
-        realtime_start = time.time() + (time_array[baselines] - start_time)
+        realtime_start = time.time() + (time_array[baselines] - start_time) if timesteps > 1 else 0
 
         def calc_wait_time(time_index):
             time_from_start = (time_array[time_index * baselines] - start_time) * self.realtime_scale
             return realtime_start + time_from_start - time.time()
 
-        async def createArrayGenerator(opts: PortOptions):
+        async def createArrayGenerator(opts: PortOptions) -> AsyncIterable:
             """
             Creates a numpy array async generator that awaits to simulate the
             the original transmission data rate
             """
             for time_index in range(timesteps):
+                # update row range for streaming
                 row_range = (time_index * baselines, (time_index+1) * baselines)
                 opts.rows = row_range
                 # prequery data before waiting
                 array = opt2array(opts)
                 wait_time = calc_wait_time(time_index)
-                if wait_time < 0:
-                    logger.error(f"{opts.name} stream cant keep up, wait_time: {wait_time}")
+                if wait_time < 0 and timesteps > 1:
+                    # logger.error(f"{opts.name} stream cant keep up, wait_time: {wait_time}")
                     raise Exception(f"{opts.name} stream cant keep up, wait_time: {wait_time}")
                 await asyncio.sleep(wait_time)
                 yield array
 
         # each generator will yield at the simulation interval
         array_generators = [
-            createArrayGenerator(PortOptions(msm, "UVW", "float64", (0,0), default_slice)),
-            createArrayGenerator(PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", (0,0), tensor_slice)),
-            createArrayGenerator(PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", (0,0), tensor_slice)),
-            createArrayGenerator(PortOptions(msm, "FLAG", "bool", (0,0), tensor_slice)),
-            createArrayGenerator(PortOptions(msm, "WEIGHT", "float64", (0,0), default_slice))
+            createArrayGenerator(PortOptions(msm, "UVW", "float64", (0, 0), default_slice)),
+            createArrayGenerator(PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", (0, 0), tensor_slice)),
+            createArrayGenerator(PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", (0, 0), tensor_slice)),
+            createArrayGenerator(PortOptions(msm, "FLAG", "bool", (0, 0), tensor_slice)),
+            createArrayGenerator(PortOptions(msm, "WEIGHT", "float64", (0, 0), default_slice))
         ]
 
         async def process_streams():
@@ -271,6 +268,7 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
 
 class StreamingMSReadApp(InputFiredAppDROP):
     pass
+
 
 ##
 # @brief MSReadRowApp
@@ -465,7 +463,7 @@ class MSUpdateApp(BarrierAppDROP):
             # (mssw, "CHAN_FREQ"),
             # (msm, "WEIGHT")
         ]
-        port_offset = 1 #  First input is an input ms
+        port_offset = 1  # First input is an input ms
         for i, inputDrop in enumerate(self.inputs[port_offset:]):
             output_table = portOptions[i][0]
             name = portOptions[i][1]

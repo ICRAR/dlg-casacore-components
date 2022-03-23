@@ -100,20 +100,18 @@ class MSTests(unittest.TestCase):
         with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
             ms_in.setCompleted()
 
-        uvw = droputils.load_npy(uvwDrop)
-        assert uvw.shape == (1330, 3)
-        freq = droputils.load_npy(freqDrop)
-        assert freq.shape == (4,)
-        vis = droputils.load_npy(visDrop)
-        assert vis.shape == (1330, 4, 4)
-
-        # TODO: sample data does not contain weight spectrum
-        # weightSpectrum = droputils.load_npy(weightSpectrumDrop)
-        # assert weightSpectrum.shape == (1330,4,4)
-        # flag = droputils.load_npy(flagDrop)
-        # assert flag.shape == (1330,4,4)
-        # weight = droputils.load_npy(weightDrop)
-        # assert weight.shape == (1330,4,4)
+        test_cases = [
+            (uvwDrop, (1330, 3)),
+            (freqDrop, (4,)),
+            (visDrop, (1330, 4, 4)),
+            # TODO: sample data does not contain weight spectrum
+            # (weightSpectrumDrop, (1330, 4, 4)),
+            # (flagDrop, (1330, 4, 4)),
+            # (weightDrop, (1330, 4))
+        ]
+        for drop, shape in test_cases:
+            data = droputils.load_npy(drop)
+            assert data.shape == shape
 
     def test_ms_read_row(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
@@ -130,12 +128,15 @@ class MSTests(unittest.TestCase):
         with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
             ms_in.setCompleted()
 
-        uvw = droputils.load_npy(uvwDrop)
-        assert uvw.shape == (20, 3)
-        freq = droputils.load_npy(freqDrop)
-        assert freq.shape == (4,)
-        vis = droputils.load_npy(visDrop)
-        assert vis.shape == (20, 4, 4)
+        test_cases = [
+            (uvwDrop, (20, 3)),
+            (freqDrop, (4,)),
+            (visDrop, (20, 4, 4))
+        ]
+        for drop, shape in test_cases:
+            data = droputils.load_npy(drop)
+            assert data.shape == shape
+
 
     def test_streaming_ms_read(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
