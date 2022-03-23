@@ -260,11 +260,13 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
             createArrayGenerator(PortOptions(msm, "WEIGHT", "float64", (0,0), default_slice))
         ]
 
-        tasks = []
-        for i, generator in enumerate(array_generators[0:len(self.streamingConsumers)]):
-            tasks.append(save_npy_stream(self.streamingConsumers[i], generator))
+        async def process_streams():
+            tasks = []
+            for i, generator in enumerate(array_generators[0:len(self.streamingConsumers)]):
+                tasks.append(asyncio.create_task(save_npy_stream(self.streamingConsumers[i], generator)))
+            await asyncio.wait(tasks)
         loop = asyncio.new_event_loop()
-        loop.run_until_complete(asyncio.wait(tasks))
+        loop.run_until_complete(process_streams())
 
 
 class StreamingMSReadApp(InputFiredAppDROP):
