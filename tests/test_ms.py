@@ -85,9 +85,9 @@ class MSTests(unittest.TestCase):
         uvwDrop = InMemoryDROP("uvw", "uvw")
         freqDrop = InMemoryDROP("freq", "freq")
         visDrop = InMemoryDROP("vis", "vis")
-        weightSpectrumDrop = InMemoryDROP("weightSepctrum", "weightSepctrumweight")
-        flagDrop = InMemoryDROP("flag", "flag")
-        weightDrop = InMemoryDROP("weight", "weight")
+        # weightSpectrumDrop = InMemoryDROP("weightSepctrum", "weightSepctrumweight")
+        # flagDrop = InMemoryDROP("flag", "flag")
+        # weightDrop = InMemoryDROP("weight", "weight")
 
         drop.addInput(ms_in)
         drop.addOutput(uvwDrop)
@@ -128,7 +128,14 @@ class MSTests(unittest.TestCase):
         with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
             ms_in.setCompleted()
 
-        test_cases = [(uvwDrop, (20, 3)), (freqDrop, (4,)), (visDrop, (20, 4, 4))]
+        test_cases = [
+            (uvwDrop, (20, 3)),
+            (freqDrop, (4,)),
+            (visDrop, (20, 4, 4)),
+            # (weightSpectrumDrop, (1330, 4, 4)),
+            # (flagDrop, (1330, 4, 4)),
+            # (weightDrop, (1330, 4))
+        ]
         for drop, shape in test_cases:
             data = droputils.load_npy(drop)
             assert data.shape == shape
@@ -166,16 +173,16 @@ class MSTests(unittest.TestCase):
         # interface which may not be suitable for an ideal
         # cyclic buffer implementation
         for drop, shape, steps in streaming_test_cases:
-            data_stream = droputils.load_npy_stream(drop)
 
-            async def assert_data():
+            async def assert_data(drop, shape, steps):
+                data_stream = droputils.load_npy_stream(drop)
                 step = 0
                 async for data in data_stream:
                     assert data.shape == shape
                     step += 1
                 assert step == steps
 
-            asyncio.run(assert_data())
+            asyncio.run(assert_data(drop, shape, steps))
 
     def test_taql_query(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
