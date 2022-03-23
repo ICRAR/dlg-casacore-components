@@ -29,11 +29,11 @@ logger = logging.getLogger(__name__)
 
 
 ##
-# @brief MSQueryApp
+# @brief TaqlQueryApp
 # @details Queries a single measurement set table column to a .npy drop
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] cparam/appclass Application class/dlg_casacore_components.taql.MSQueryApp/String/readonly/
+# @param[in] cparam/appclass Application class/dlg_casacore_components.taql.TaqlQueryApp/String/readonly/
 #     \~English Application class
 # @param[in] aparam/column Column//String/readwrite/False//False/
 #     \~English Column expression
@@ -50,10 +50,10 @@ logger = logging.getLogger(__name__)
 # @param[out] port/array Array/npy/
 #     \~English npy output
 # @par EAGLE_END
-class MSQueryApp(BarrierAppDROP):
+class TaqlQueryApp(BarrierAppDROP):
     component_meta = dlg_component(
-        "MSQueryApp",
-        "MS Query App",
+        "TaqlQueryApp",
+        "Taql Query App",
         [dlg_batch_input("binary/*", [])],
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
@@ -67,7 +67,7 @@ class MSQueryApp(BarrierAppDROP):
     def run(self):
         db = casacore.tables.table(self.inputs[0].path)
         if len(self.inputs) > 1:
-            indexes = dlg.droputils.load_numpy(self.inputs[1])
+            indexes = dlg.droputils.load_npy(self.inputs[1])
             self.offset = indexes[0]
             self.limit = indexes[-1]
         data = db.query(
@@ -78,7 +78,7 @@ class MSQueryApp(BarrierAppDROP):
             offset=self.offset,
         ).getcol("OUTPUT")
         for drop in self.outputs:
-            dlg.droputils.save_numpy(drop, data)
+            dlg.droputils.save_npy(drop, data)
 
 
 ##
@@ -111,7 +111,7 @@ class TaqlColApp(BarrierAppDROP):
         assert len(query.colnames()) == 1
         for drop in self.outputs:
             data = query.getcol(query.colnames()[0])
-            dlg.droputils.save_numpy(drop, data)
+            dlg.droputils.save_npy(drop, data)
 
         # df = pandas.DataFrame.from_records()
         # self.outputs[0].sav

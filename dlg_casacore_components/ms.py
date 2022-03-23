@@ -17,22 +17,27 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+import asyncio
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union
+from re import A
+from threading import Thread
+import time
+from typing import AsyncIterable, List, Optional, Tuple, Union
 
 import casacore
 import casacore.tables
 import numpy as np
-from dlg.droputils import load_numpy, save_numpy, copyDropContents
-from dlg.drop import BarrierAppDROP, ContainerDROP
+from dlg.droputils import load_npy, save_npy, save_npy_stream, copyDropContents
+from dlg.drop import BarrierAppDROP, ContainerDROP, InputFiredAppDROP, DataDROP
 from dlg.exceptions import DaliugeException
 from dlg.meta import (
     dlg_batch_input,
     dlg_batch_output,
     dlg_component,
     dlg_int_param,
+    dlg_float_param,
     dlg_streaming_input,
 )
 
@@ -41,11 +46,30 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PortOptions:
+    """MSQuery parameters"""
     table: casacore.tables.table
     name: str
     dtype: str
-    rows: Tuple[int, int]  # (start, end)
-    slicer: Union[slice, Tuple[slice, slice, slice]]
+    rows: Tuple[int, int]  # (start, end) # table row slicer
+    slicer: Union[slice, Tuple[slice, slice, slice]] # tensor slicer
+
+
+def opt2array(opt):
+    data: np.ndarray = (
+        opt.table.query(
+            columns=f"{opt.name} as COL",
+            offset=opt.rows[0],
+            limit=opt.rows[1]-opt.rows[0],
+        )
+        .getcol("COL")[opt.slicer]
+        .squeeze()
+        .astype(opt.dtype)
+    )
+    return data
+
+
+def calculate_baselines(antennas: int, has_autocorrelations: bool):
+    return (antennas + 1) * antennas // 2 if has_autocorrelations else (antennas - 1) * antennas // 2
 
 
 ##
@@ -107,47 +131,144 @@ class MSReadApp(BarrierAppDROP):
         mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
 
         baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
-        has_autocorrelations = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
-        baselines: int = (
-            (baseline_antennas + 1) * baseline_antennas // 2 if has_autocorrelations else (baseline_antennas - 1) * baseline_antennas // 2
-        )
+        has_autocorrelations: bool = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
+        baselines: int = calculate_baselines(baseline_antennas, has_autocorrelations)
         row_start = self.timestamp_start * baselines
         row_end = self.timestamp_end * baselines if self.timestamp_end is not None else -1
         row_range = (row_start, row_end)
 
         # TODO: baseline slicing should be possible, use 4D reshape and index based slicing
+        
+        default_slice = slice(0, None)
         # (row, channels, pols)
         tensor_slice = (
-            slice(0, None),
+            default_slice,
             slice(self.channel_start, self.channel_end),
             slice(self.pol_start, self.pol_end),
         )
 
         # table, name, dtype, slicer
         portOptions = [
-            PortOptions(msm, "UVW", "float64", row_range, tensor_slice[0]),
+            PortOptions(msm, "UVW", "float64", row_range, default_slice),
             PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]),
             PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice),
             PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice),
             PortOptions(msm, "FLAG", "bool", row_range, tensor_slice),
-            PortOptions(msm, "WEIGHT", "float64", row_range, tensor_slice[0]),
+            PortOptions(msm, "WEIGHT", "float64", row_range, default_slice),
         ]
 
-        for i, opt in enumerate(portOptions):
-            if i < len(self.outputs):
-                outputDrop = self.outputs[i]
-                data = (
-                    opt.table.query(
-                        columns=f"{opt.name} as COL",
-                        offset=opt.rows[0],
-                        limit=opt.rows[1],
-                    )
-                    .getcol("COL")[opt.slicer]
-                    .squeeze()
-                    .astype(opt.dtype)
-                )
-                save_numpy(outputDrop, data)
+        for i, opt in enumerate(portOptions[0:len(self.outputs)]):
+                save_npy(self.outputs[i], opt2array(opt))
 
+
+##
+# @brief
+# @details Extracts measurement set tables with simulated time delay
+#
+class SimulatedStreamingMSReadApp(BarrierAppDROP):
+    component_meta = dlg_component(
+        "SimulatedStreamingMSReadApp",
+        "Simulated Streaming MeasurementSet Read App",
+        [dlg_batch_input("binary/*", [])],
+        [dlg_batch_output("binary/*", [])],
+        [dlg_streaming_input("binary/*")],
+    )
+    channel_start: int = dlg_int_param("channel_start", 0)
+    channel_end: Optional[int] = dlg_int_param("channel_end", None)
+    pol_start: int = dlg_int_param("pol_start", 0)
+    pol_end: Optional[int] = dlg_int_param("pol_end", None)
+    realtime_scale: float = dlg_float_param("realtime_scale", 1.0)
+
+    def run(self):
+        if len(self.inputs) < 1:
+            raise Exception(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
+        ms_path: str = self.inputs[0].path
+        assert os.path.exists(ms_path)
+        assert casacore.tables.tableexists(ms_path)
+        msm = casacore.tables.table(ms_path, readonly=True)
+        mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
+
+        baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
+        has_autocorrelations = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
+        baselines: int = calculate_baselines(baseline_antennas, has_autocorrelations)
+
+        time_array = msm.getcol("TIME")
+        start_time = time_array[0]
+        end_time = time_array[-1]
+
+        time_index_start = 0
+        time_index_end = len(time_array)
+
+        if time_index_end is None:
+            raise Exception("This implementation is for barrier app drop with known time index count")
+        timesteps = (time_index_end - time_index_start) // baselines
+
+        # TODO: baseline slicing should be possible, use 4D reshape and index based slicing
+
+        default_slice = slice(0, None)
+        # (row, channels, pols)
+        tensor_slice = (
+            default_slice,
+            slice(self.channel_start, self.channel_end),
+            slice(self.pol_start, self.pol_end),
+        )
+
+        ##
+        # Process model outputs
+        portOptions = [
+            PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1])
+        ]
+        output_offset = 1 # 0 reserved for end drop
+        for i, opt in enumerate(portOptions[0:len(self.outputs)]):
+            save_npy(self.outputs[output_offset+i], opt2array(opt))
+
+        ##
+        # Process time-based streaming consumers
+
+        # NOTE: naturally the first message would fail to keep up for the first run as the
+        # wait time is ~0. Adding a prequery time allowance should let all the generators
+        # buffer and wait.
+        realtime_start = time.time() + (time_array[baselines] - start_time)
+
+        def calc_wait_time(time_index):
+            time_from_start = (time_array[time_index * baselines] - start_time) * self.realtime_scale
+            return realtime_start + time_from_start - time.time()
+
+        async def createArrayGenerator(opts: PortOptions):
+            """
+            Creates a numpy array async generator that awaits to simulate the
+            the original transmission data rate
+            """
+            for time_index in range(timesteps):
+                row_range = (time_index * baselines, (time_index+1) * baselines)
+                opts.rows = row_range
+                # prequery data before waiting
+                array = opt2array(opts)
+                wait_time = calc_wait_time(time_index)
+                if wait_time < 0:
+                    logger.error(f"{opts.name} stream cant keep up, wait_time: {wait_time}")
+                    raise Exception(f"{opts.name} stream cant keep up, wait_time: {wait_time}")
+                await asyncio.sleep(wait_time)
+                yield array
+
+        # each generator will yield at the simulation interval
+        array_generators = [
+            createArrayGenerator(PortOptions(msm, "UVW", "float64", (0,0), default_slice)),
+            createArrayGenerator(PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", (0,0), tensor_slice)),
+            createArrayGenerator(PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", (0,0), tensor_slice)),
+            createArrayGenerator(PortOptions(msm, "FLAG", "bool", (0,0), tensor_slice)),
+            createArrayGenerator(PortOptions(msm, "WEIGHT", "float64", (0,0), default_slice))
+        ]
+
+        tasks = []
+        for i, generator in enumerate(array_generators[0:len(self.streamingConsumers)]):
+            tasks.append(save_npy_stream(self.streamingConsumers[i], generator))
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(asyncio.wait(tasks))
+
+
+class StreamingMSReadApp(InputFiredAppDROP):
+    pass
 
 ##
 # @brief MSReadRowApp
@@ -234,13 +355,13 @@ class MSReadRowApp(BarrierAppDROP):
                     opt.table.query(
                         columns=f"{opt.name} as COL",
                         offset=opt.rows[0],
-                        limit=opt.rows[1],
+                        limit=opt.rows[1]-opt.rows[0],
                     )
                     .getcol("COL")[opt.slicer]
                     .squeeze()
                     .astype(opt.dtype)
                 )
-                save_numpy(outputDrop, data)
+                save_npy(outputDrop, data)
 
 
 ##
@@ -299,18 +420,18 @@ class MSCopyUpdateApp(BarrierAppDROP):
 
             portOptions = [(msm, "DATA")]
             port_offset = 1
-            for i in range(len(self.inputs) - port_offset):
+            for i, inputDrop in enumerate(self.inputs[port_offset:]):
                 inputDrop = self.inputs[i + port_offset]
                 table = portOptions[i][0]
                 name = portOptions[i][1]
-                data = load_numpy(inputDrop)
+                data = load_npy(inputDrop)
                 num_rows = data.shape[0] if self.num_rows is None else self.num_rows
                 table.col(name).putcol(data, startrow=self.start_row, nrow=num_rows)
 
 
 ##
 # @brief MSUpdateApp
-# @details Updates the specified ms tables.
+# @details Updates the specified ms table
 # @par EAGLE_START
 # @param category PythonApp
 # @param[in] param/appclass appclass/dlg_casacore_components.ms.MsUpdateApp/String/readonly/False/
@@ -333,10 +454,8 @@ class MSUpdateApp(BarrierAppDROP):
         ms_path = self.inputs[0].path
         assert os.path.exists(ms_path)
         assert casacore.tables.tableexists(ms_path)
-        self.updateOutputs()
 
-    def updateOutputs(self):
-        msm = casacore.tables.table(self.inputs[0].path, readonly=False)  # main table
+        msm = casacore.tables.table(ms_path, readonly=False)  # main table
 
         portOptions = [
             (msm, "DATA"),
@@ -344,10 +463,8 @@ class MSUpdateApp(BarrierAppDROP):
             # (mssw, "CHAN_FREQ"),
             # (msm, "WEIGHT")
         ]
-        port_offset = 1
-        for i in range(len(self.inputs) - port_offset):
-            inputDrop = self.inputs[i + port_offset]
-            table = portOptions[i][0]
+        port_offset = 1 #  First input is an input ms
+        for i, inputDrop in enumerate(self.inputs[port_offset:]):
+            output_table = portOptions[i][0]
             name = portOptions[i][1]
-            data = load_numpy(inputDrop)
-            table.col(name).putcol(data)
+            output_table.col(name).putcol(load_npy(inputDrop))

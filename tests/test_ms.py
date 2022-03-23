@@ -22,14 +22,16 @@ from tempfile import TemporaryDirectory
 import sys
 import logging
 import tarfile
+from typing import AsyncIterable
 import unittest
 from pathlib import Path
+import asyncio
 
-from dlg.drop import FileDROP, InMemoryDROP
+from dlg.drop import FileDROP, InMemoryDROP, EndDROP
 import dlg.droputils as droputils
 
-from dlg_casacore_components.ms import MSReadApp, MSReadRowApp
-from dlg_casacore_components.taql import MSQueryApp, TaqlColApp
+from dlg_casacore_components.ms import MSReadApp, MSReadRowApp, SimulatedStreamingMSReadApp
+from dlg_casacore_components.taql import TaqlQueryApp, TaqlColApp
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 
@@ -55,6 +57,28 @@ class MSTests(unittest.TestCase):
     def tearDown(self):
         self.td.cleanup()
 
+    def test_ms_read_single(self):
+        ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
+        drop = MSReadApp("2", "2", timestamp_end=1)
+        uvwDrop = InMemoryDROP("uvw", "uvw")
+        freqDrop = InMemoryDROP("freq", "freq")
+        visDrop = InMemoryDROP("vis", "vis")
+
+        drop.addInput(ms_in)
+        drop.addOutput(uvwDrop)
+        drop.addOutput(freqDrop)
+        drop.addOutput(visDrop)
+
+        with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
+            ms_in.setCompleted()
+
+        uvw = droputils.load_npy(uvwDrop)
+        assert uvw.shape == (10, 3)
+        freq = droputils.load_npy(freqDrop)
+        assert freq.shape == (4,)
+        vis = droputils.load_npy(visDrop)
+        assert vis.shape == (10, 4, 4)
+
     def test_ms_read(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
         drop = MSReadApp("2", "2")
@@ -76,42 +100,20 @@ class MSTests(unittest.TestCase):
         with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
             ms_in.setCompleted()
 
-        uvw = droputils.load_numpy(uvwDrop)
+        uvw = droputils.load_npy(uvwDrop)
         assert uvw.shape == (1330, 3)
-        freq = droputils.load_numpy(freqDrop)
+        freq = droputils.load_npy(freqDrop)
         assert freq.shape == (4,)
-        vis = droputils.load_numpy(visDrop)
+        vis = droputils.load_npy(visDrop)
         assert vis.shape == (1330, 4, 4)
 
-        # TODO: sample data does not container weight spectrum
-        # weightSpectrum = droputils.load_numpy(weightSpectrumDrop)
+        # TODO: sample data does not contain weight spectrum
+        # weightSpectrum = droputils.load_npy(weightSpectrumDrop)
         # assert weightSpectrum.shape == (1330,4,4)
-        # flag = droputils.load_numpy(flagDrop)
+        # flag = droputils.load_npy(flagDrop)
         # assert flag.shape == (1330,4,4)
-        # weight = droputils.load_numpy(weightDrop)
+        # weight = droputils.load_npy(weightDrop)
         # assert weight.shape == (1330,4,4)
-
-    def test_ms_read_single(self):
-        ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = MSReadApp("2", "2", timestamp_end=1)
-        uvwDrop = InMemoryDROP("uvw", "uvw")
-        freqDrop = InMemoryDROP("freq", "freq")
-        visDrop = InMemoryDROP("vis", "vis")
-
-        drop.addInput(ms_in)
-        drop.addOutput(uvwDrop)
-        drop.addOutput(freqDrop)
-        drop.addOutput(visDrop)
-
-        with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
-            ms_in.setCompleted()
-
-        uvw = droputils.load_numpy(uvwDrop)
-        assert uvw.shape == (10, 3)
-        freq = droputils.load_numpy(freqDrop)
-        assert freq.shape == (4,)
-        vis = droputils.load_numpy(visDrop)
-        assert vis.shape == (10, 4, 4)
 
     def test_ms_read_row(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
@@ -128,16 +130,59 @@ class MSTests(unittest.TestCase):
         with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
             ms_in.setCompleted()
 
-        uvw = droputils.load_numpy(uvwDrop)
+        uvw = droputils.load_npy(uvwDrop)
         assert uvw.shape == (20, 3)
-        freq = droputils.load_numpy(freqDrop)
+        freq = droputils.load_npy(freqDrop)
         assert freq.shape == (4,)
-        vis = droputils.load_numpy(visDrop)
+        vis = droputils.load_npy(visDrop)
         assert vis.shape == (20, 4, 4)
 
-    def test_ms_query(self):
+    def test_streaming_ms_read(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = MSQueryApp("2", "2", column="DATA", offset=0, limit=30)
+        drop = SimulatedStreamingMSReadApp("2", "2", realtime_scale=0.02)
+        # drop = SimulatedStreamingMSReadApp("2", "2", timestamp_end=1)
+        endDrop = EndDROP("end", "end")
+        freqDrop = InMemoryDROP("freq", "freq")
+        uvwDrop = InMemoryDROP("uvw", "uvw")
+        visDrop = InMemoryDROP("vis", "vis")
+
+        drop.addInput(ms_in)
+        drop.addOutput(endDrop)
+        drop.addOutput(freqDrop)
+        drop.addStreamingConsumer(uvwDrop)
+        drop.addStreamingConsumer(visDrop)
+        # TODO: consider adding an accumulation app that writes a stream
+        # into a growing data drop.
+
+        with droputils.DROPWaiterCtx(self, [freqDrop, endDrop], 5):
+            ms_in.setCompleted()
+
+        freq = droputils.load_npy(freqDrop)
+        assert freq.shape == (4,)
+
+        streaming_test_cases = [
+            (uvwDrop, (10, 3), 133),
+            (visDrop, (10, 4, 4), 133),
+        ]
+
+        # Here the stream is fully queued then batch processed
+        # TODO: This read implementation uses a contiguous read
+        # interface which may not be suitable for an ideal
+        # cyclic buffer implementation
+        for drop, shape, steps in streaming_test_cases:
+            data_stream = droputils.load_npy_stream(drop)
+            async def assert_data():
+                step = 0
+                async for data in data_stream:
+                    assert data.shape == shape
+                    step += 1
+                assert step == steps
+            asyncio.run(assert_data())
+
+
+    def test_taql_query(self):
+        ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
+        drop = TaqlQueryApp("2", "2", column="DATA", offset=0, limit=30)
         visDrop = InMemoryDROP("vis", "vis")
 
         drop.addInput(ms_in)
@@ -146,10 +191,10 @@ class MSTests(unittest.TestCase):
         with droputils.DROPWaiterCtx(self, [visDrop], 5):
             ms_in.setCompleted()
 
-        vis = droputils.load_numpy(visDrop)
+        vis = droputils.load_npy(visDrop)
         assert vis.shape == (30, 4, 4)
 
-    def test_taql(self):
+    def test_taql_col(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
         drop = TaqlColApp("2", "2", query="select DATA from $1 limit 30")
         visDrop = InMemoryDROP("vis", "vis")
@@ -160,5 +205,5 @@ class MSTests(unittest.TestCase):
         with droputils.DROPWaiterCtx(self, [visDrop], 5):
             ms_in.setCompleted()
 
-        vis = droputils.load_numpy(visDrop)
+        vis = droputils.load_npy(visDrop)
         assert vis.shape == (30, 4, 4)
