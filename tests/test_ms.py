@@ -128,15 +128,10 @@ class MSTests(unittest.TestCase):
         with droputils.DROPWaiterCtx(self, [uvwDrop, freqDrop, visDrop], 5):
             ms_in.setCompleted()
 
-        test_cases = [
-            (uvwDrop, (20, 3)),
-            (freqDrop, (4,)),
-            (visDrop, (20, 4, 4))
-        ]
+        test_cases = [(uvwDrop, (20, 3)), (freqDrop, (4,)), (visDrop, (20, 4, 4))]
         for drop, shape in test_cases:
             data = droputils.load_npy(drop)
             assert data.shape == shape
-
 
     def test_streaming_ms_read(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
@@ -172,14 +167,15 @@ class MSTests(unittest.TestCase):
         # cyclic buffer implementation
         for drop, shape, steps in streaming_test_cases:
             data_stream = droputils.load_npy_stream(drop)
+
             async def assert_data():
                 step = 0
                 async for data in data_stream:
                     assert data.shape == shape
                     step += 1
                 assert step == steps
-            asyncio.run(assert_data())
 
+            asyncio.run(assert_data())
 
     def test_taql_query(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))

@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PortOptions:
     """MSQuery parameters"""
+
     table: casacore.tables.table
     name: str
     dtype: str
@@ -57,7 +58,7 @@ def opt2array(opt):
         opt.table.query(
             columns=f"{opt.name} as COL",
             offset=opt.rows[0],
-            limit=opt.rows[1]-opt.rows[0],
+            limit=opt.rows[1] - opt.rows[0],
         )
         .getcol("COL")[opt.slicer]
         .squeeze()
@@ -154,7 +155,7 @@ class MSReadApp(BarrierAppDROP):
             PortOptions(msm, "WEIGHT", "float64", row_range, default_slice),
         ]
 
-        for i, opt in enumerate(portOptions[0:len(self.outputs)]):
+        for i, opt in enumerate(portOptions[0 : len(self.outputs)]):
             save_npy(self.outputs[i], opt2array(opt))
 
 
@@ -211,12 +212,10 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
 
         ##
         # Process model outputs
-        portOptions = [
-            PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1])
-        ]
+        portOptions = [PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1])]
         output_offset = 1  # 0 reserved for end drop
-        for i, opt in enumerate(portOptions[0:len(self.outputs)]):
-            save_npy(self.outputs[output_offset+i], opt2array(opt))
+        for i, opt in enumerate(portOptions[0 : len(self.outputs)]):
+            save_npy(self.outputs[output_offset + i], opt2array(opt))
 
         ##
         # Process time-based streaming consumers
@@ -237,7 +236,7 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
             """
             for time_index in range(timesteps):
                 # update row range for streaming
-                row_range = (time_index * baselines, (time_index+1) * baselines)
+                row_range = (time_index * baselines, (time_index + 1) * baselines)
                 opts.rows = row_range
                 # prequery data before waiting
                 array = opt2array(opts)
@@ -254,14 +253,15 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
             createArrayGenerator(PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", (0, 0), tensor_slice)),
             createArrayGenerator(PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", (0, 0), tensor_slice)),
             createArrayGenerator(PortOptions(msm, "FLAG", "bool", (0, 0), tensor_slice)),
-            createArrayGenerator(PortOptions(msm, "WEIGHT", "float64", (0, 0), default_slice))
+            createArrayGenerator(PortOptions(msm, "WEIGHT", "float64", (0, 0), default_slice)),
         ]
 
         async def process_streams():
             tasks = []
-            for i, generator in enumerate(array_generators[0:len(self.streamingConsumers)]):
+            for i, generator in enumerate(array_generators[0 : len(self.streamingConsumers)]):
                 tasks.append(asyncio.create_task(save_npy_stream(self.streamingConsumers[i], generator)))
             await asyncio.wait(tasks)
+
         loop = asyncio.new_event_loop()
         loop.run_until_complete(process_streams())
 
@@ -355,7 +355,7 @@ class MSReadRowApp(BarrierAppDROP):
                     opt.table.query(
                         columns=f"{opt.name} as COL",
                         offset=opt.rows[0],
-                        limit=opt.rows[1]-opt.rows[0],
+                        limit=opt.rows[1] - opt.rows[0],
                     )
                     .getcol("COL")[opt.slicer]
                     .squeeze()
