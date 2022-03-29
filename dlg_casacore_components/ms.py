@@ -32,8 +32,10 @@ try:
     from dlg.droputils import load_npy, save_npy, save_npy_stream, copyDropContents
 except ImportError:
     from dlg.droputils import load_numpy as load_npy, save_numpy as save_npy, copyDropContents
+
     def save_npy_stream(drop, stream):
         raise NotImplementedError()
+
 
 from dlg.drop import BarrierAppDROP, ContainerDROP
 from dlg.exceptions import DaliugeException
@@ -47,6 +49,7 @@ from dlg.meta import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class PortOptions:

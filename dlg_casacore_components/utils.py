@@ -27,6 +27,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 async def aenumerate(asequence, start=0):
     """Asynchronously enumerate an async iterator from a given start value"""
     n = start
@@ -67,7 +68,7 @@ async def load_npy_stream(drop: DataDROP, allow_pickle=False, backoff=0.01) -> A
     cursor = 0
     while not (drop.isCompleted() and cursor == dropio.size()):
         # TODO: peek ideally would be awaitable
-        if cursor != dropio.size(): #and dropio.peek(1):
+        if cursor != dropio.size():  # and dropio.peek(1):
             dropio.seek(cursor)
             res = np.load(dropio, allow_pickle=allow_pickle)
             cursor = dropio.tell()

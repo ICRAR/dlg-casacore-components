@@ -29,13 +29,15 @@ import asyncio
 from dlg.drop import FileDROP, InMemoryDROP, EndDROP
 
 from dlg.droputils import DROPWaiterCtx
+
 try:
-    from dlg.droputils import load_npy, save_npy
+    from dlg.droputils import load_npy
 except ImportError:
     from dlg.droputils import load_numpy as load_npy
 
 try:
-    from dlg.droputils import save_npy_stream, load_npy_stream
+    from dlg.droputils import load_npy_stream
+
     streaming = True
 except ImportError:
     streaming = False
@@ -150,7 +152,7 @@ class MSTests(unittest.TestCase):
             data = load_npy(drop)
             assert data.shape == shape
 
-    @unittest.skipIf(streaming == False, reason="streaming utils not available")
+    @unittest.skipIf(streaming is False, reason="streaming utils not available")
     def test_streaming_ms_read(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
         drop = SimulatedStreamingMSReadApp("2", "2", realtime_scale=0.02)
@@ -184,6 +186,7 @@ class MSTests(unittest.TestCase):
         # interface which may not be suitable for an ideal
         # cyclic buffer implementation
         for drop, shape, steps in streaming_test_cases:
+
             async def assert_data(drop, shape, steps):
                 data_stream = load_npy_stream(drop)
                 step = 0
@@ -191,8 +194,8 @@ class MSTests(unittest.TestCase):
                     assert data.shape == shape
                     step += 1
                 assert step == steps
-            asyncio.run(assert_data(drop, shape, steps))
 
+            asyncio.run(assert_data(drop, shape, steps))
 
     def test_taql_query(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
