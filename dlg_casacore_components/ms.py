@@ -183,19 +183,29 @@ class MSReadApp(BarrierAppDROP):
 # @details Extracts measurement set tables to numpy arrays at simulated time increments.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False/
+# @param[in] cparam/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False//False/
 #     \~English Application class
-# @param[in] param/timestep_start timestep_start/0/Integer/readwrite/False/
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
+# @param[in] aparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
 #     \~English first timestamp to read
-# @param[in] param/timestep_end timestep_end/None/Integer/readwrite/False/
+# @param[in] aparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
 #     \~English last timestamp to read
-# @param[in] param/channel_start channel_start/0/Integer/readwrite/False/
+# @param[in] aparam/channel_start channel_start/0/Integer/readwrite/False//False/
 #     \~English first channel to read
-# @param[in] param/channel_end channel_end/None/Integer/readwrite/False/
+# @param[in] aparam/channel_end channel_end/None/Integer/readwrite/False//False/
 #     \~English last channel to read
-# @param[in] param/pol_start pol_start/0/Integer/readwrite/False/
+# @param[in] aparam/pol_start pol_start/0/Integer/readwrite/False//False/
 #     \~English first pol to read
-# @param[in] param/pol_end pol_end/None/Integer/readwrite/False/
+# @param[in] aparam/pol_end pol_end/None/Integer/readwrite/False//False/
 #     \~English last pol to read
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop to a Measurement Set
@@ -320,19 +330,29 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
 # @details Extracts measurement set tables to numpy arrays.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass appclass/dlg_casacore_components.ms.MSReadRowApp/String/readonly/False/
+# @param[in] cparam/appclass appclass/dlg_casacore_components.ms.MSReadRowApp/String/readonly/False//False/
 #     \~English Application class
-# @param[in] param/row_start row_start/0/Integer/readwrite/False/
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
+# @param[in] aparam/row_start row_start/0/Integer/readwrite/False//False/
 #     \~English first row to read
-# @param[in] param/row_end row_end/None/Integer/readwrite/False/
+# @param[in] aparam/row_end row_end/None/Integer/readwrite/False//False/
 #     \~English last row to read
-# @param[in] param/channel_start channel_start/0/Integer/readwrite/False/
+# @param[in] aparam/channel_start channel_start/0/Integer/readwrite/False//False/
 #     \~English first channel to read
-# @param[in] param/channel_end channel_end/None/Integer/readwrite/False/
+# @param[in] aparam/channel_end channel_end/None/Integer/readwrite/False//False/
 #     \~English last channel to read
-# @param[in] param/pol_start pol_start/0/Integer/readwrite/False/
+# @param[in] aparam/pol_start pol_start/0/Integer/readwrite/False//False/
 #     \~English first pol to read
-# @param[in] param/pol_end pol_end/None/Integer/readwrite/False/
+# @param[in] aparam/pol_end pol_end/None/Integer/readwrite/False//False/
 #     \~English last pol to read
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop to a Measurement Set
@@ -414,13 +434,23 @@ class MSReadRowApp(BarrierAppDROP):
 # @details Copies an input measurement set to ouput and updates a specified table.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass appclass/dlg_casacore_components.ms.MSCopyUpdateApp/String/readonly/False/
+# @param[in] cparam/appclass appclass/dlg_casacore_components.ms.MSCopyUpdateApp/String/readonly/False//False/
 #     \~English Application class
-# @param[in] param/start_row start_row/0/Integer/readwrite/False/
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
+# @param[in] aparam/start_row start_row/0/Integer/readwrite/False//False/
 #     \~English start row to update tables from
-# @param[in] param/start_row start_row//Integer/readwrite/False/
+# @param[in] aparam/start_row start_row//Integer/readwrite/False//False/
 #     \~English number of table rows to update
-# @param[in] port/ms ms/PathBasedDrop/
+# @param[in] aport/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop of a Measurement Set
 # @param[in] port/vis vis/npy/
 #     \~English Port containing visibilities in npy format
@@ -479,8 +509,18 @@ class MSCopyUpdateApp(BarrierAppDROP):
 # @details Updates the specified ms table
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass appclass/dlg_casacore_components.ms.MsUpdateApp/String/readonly/False/
+# @param[in] cparam/appclass appclass/dlg_casacore_components.ms.MsUpdateApp/String/readonly/False//False/
 #     \~English Application class
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop of a Measurement Set
 # @param[in] port/vis vis/npy/

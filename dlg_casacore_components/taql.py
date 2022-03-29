@@ -19,11 +19,21 @@
 #
 import logging
 
-import dlg.droputils
-
 from dlg.drop import BarrierAppDROP
-from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_streaming_input, dlg_string_param, dlg_int_param
+from dlg.meta import (
+    dlg_batch_input,
+    dlg_batch_output,
+    dlg_component,
+    dlg_streaming_input,
+    dlg_string_param,
+    dlg_int_param
+)
 import casacore.tables
+
+try:
+    from dlg.droputils import save_npy, load_npy
+except ImportError:
+    from dlg.droputils import save_numpy as save_npy, load_numpy as load_npy
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +43,18 @@ logger = logging.getLogger(__name__)
 # @details Queries a single measurement set table column to a .npy drop
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] cparam/appclass Application class/dlg_casacore_components.taql.TaqlQueryApp/String/readonly/
+# @param[in] cparam/appclass Application class/dlg_casacore_components.taql.TaqlQueryApp/String/readonly/False//False/
 #     \~English Application class
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
 # @param[in] aparam/column Column//String/readwrite/False//False/
 #     \~English Column expression
 # @param[in] aparam/where Where//String/readwrite/False//False/
@@ -67,7 +87,7 @@ class TaqlQueryApp(BarrierAppDROP):
     def run(self):
         db = casacore.tables.table(self.inputs[0].path)
         if len(self.inputs) > 1:
-            indexes = dlg.droputils.load_npy(self.inputs[1])
+            indexes = load_npy(self.inputs[1])
             self.offset = indexes[0]
             self.limit = indexes[-1]
         data = db.query(
@@ -78,7 +98,7 @@ class TaqlQueryApp(BarrierAppDROP):
             offset=self.offset,
         ).getcol("OUTPUT")
         for drop in self.outputs:
-            dlg.droputils.save_npy(drop, data)
+            save_npy(drop, data)
 
 
 ##
@@ -86,8 +106,18 @@ class TaqlQueryApp(BarrierAppDROP):
 # @details Queries a single measurement set table column to a .npy drop
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass Application class/dlg_casacore_components.taql.TaqlColApp/String/readonly/
+# @param[in] cparam/appclass Application class/dlg_casacore_components.taql.TaqlColApp/String/readonly/False//False/
 #     \~English Application class
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
 # @param[in] aparam/query Query//String/readwrite/False//False/
 #     \~English Query expression using table variable '$1'
 # @param[in] port/ms MS/PathBasedDrop
@@ -111,7 +141,7 @@ class TaqlColApp(BarrierAppDROP):
         assert len(query.colnames()) == 1
         for drop in self.outputs:
             data = query.getcol(query.colnames()[0])
-            dlg.droputils.save_npy(drop, data)
+            save_npy(drop, data)
 
         # df = pandas.DataFrame.from_records()
         # self.outputs[0].sav
