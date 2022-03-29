@@ -15,6 +15,7 @@ on:
 
 jobs:
   linter:
+    needs: tests_linux
     strategy:
       fail-fast: false
       matrix:
@@ -32,7 +33,6 @@ jobs:
         run: make lint
 
   tests_linux:
-    needs: linter
     strategy:
       fail-fast: false
       matrix:
