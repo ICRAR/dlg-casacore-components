@@ -20,14 +20,7 @@
 import logging
 
 from dlg.drop import BarrierAppDROP
-from dlg.meta import (
-    dlg_batch_input,
-    dlg_batch_output,
-    dlg_component,
-    dlg_streaming_input,
-    dlg_string_param,
-    dlg_int_param
-)
+from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_streaming_input, dlg_string_param, dlg_int_param
 import casacore.tables
 
 try:
