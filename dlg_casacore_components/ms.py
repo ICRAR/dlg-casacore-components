@@ -27,8 +27,15 @@ from typing import AsyncIterable, Optional, Tuple, Union
 import casacore
 import casacore.tables
 import numpy as np
-from dlg.droputils import load_npy, save_npy, save_npy_stream, copyDropContents
-from dlg.drop import BarrierAppDROP, ContainerDROP, InputFiredAppDROP
+
+try:
+    from dlg.droputils import load_npy, save_npy, save_npy_stream, copyDropContents
+except ImportError:
+    from dlg.droputils import load_numpy as load_npy, save_numpy as save_npy, copyDropContents
+    def save_npy_stream(drop, stream):
+        raise NotImplementedError()
+
+from dlg.drop import BarrierAppDROP, ContainerDROP
 from dlg.exceptions import DaliugeException
 from dlg.meta import (
     dlg_batch_input,
@@ -40,7 +47,6 @@ from dlg.meta import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 @dataclass
 class PortOptions:
@@ -76,19 +82,29 @@ def calculate_baselines(antennas: int, has_autocorrelations: bool):
 # @details Extracts measurement set tables to numpy arrays.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False/
+# @param[in] cparam/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False//False/
 #     \~English Application class
-# @param[in] param/timestamp_start timestamp_start/0/Integer/readwrite/False/
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
+# @param[in] aparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
 #     \~English first timestamp to read
-# @param[in] param/timestamp_end timestamp_end/None/Integer/readwrite/False/
+# @param[in] aparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
 #     \~English last timestamp to read
-# @param[in] param/channel_start channel_start/0/Integer/readwrite/False/
+# @param[in] aparam/channel_start channel_start/0/Integer/readwrite/False//False/
 #     \~English first channel to read
-# @param[in] param/channel_end channel_end/None/Integer/readwrite/False/
+# @param[in] aparam/channel_end channel_end/None/Integer/readwrite/False//False/
 #     \~English last channel to read
-# @param[in] param/pol_start pol_start/0/Integer/readwrite/False/
+# @param[in] aparam/pol_start pol_start/0/Integer/readwrite/False//False/
 #     \~English first pol to read
-# @param[in] param/pol_end pol_end/None/Integer/readwrite/False/
+# @param[in] aparam/pol_end pol_end/None/Integer/readwrite/False//False/
 #     \~English last pol to read
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop to a Measurement Set
@@ -113,8 +129,8 @@ class MSReadApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    timestamp_start: int = dlg_int_param("timestamp_start", 0)
-    timestamp_end: Optional[int] = dlg_int_param("timestamp_start", None)
+    timestep_start: int = dlg_int_param("timestep_start", 0)
+    timestep_end: Optional[int] = dlg_int_param("timestep_start", None)
     channel_start: int = dlg_int_param("channel_start", 0)
     channel_end: Optional[int] = dlg_int_param("channel_end", None)
     pol_start: int = dlg_int_param("pol_start", 0)
@@ -132,8 +148,8 @@ class MSReadApp(BarrierAppDROP):
         baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
         has_autocorrelations: bool = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
         baselines: int = calculate_baselines(baseline_antennas, has_autocorrelations)
-        row_start = self.timestamp_start * baselines
-        row_end = self.timestamp_end * baselines if self.timestamp_end is not None else -1
+        row_start = self.timestep_start * baselines
+        row_end = self.timestep_end * baselines if self.timestep_end is not None else -1
         row_range = (row_start, row_end)
 
         # TODO: baseline slicing should be possible, use 4D reshape and index based slicing
@@ -160,9 +176,39 @@ class MSReadApp(BarrierAppDROP):
 
 
 ##
-# @brief
-# @details Extracts measurement set tables with simulated time delay
-#
+# @brief SimulatedStreamingMSReadApp
+# @details Extracts measurement set tables to numpy arrays at simulated time increments.
+# @par EAGLE_START
+# @param category PythonApp
+# @param[in] param/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False/
+#     \~English Application class
+# @param[in] param/timestep_start timestep_start/0/Integer/readwrite/False/
+#     \~English first timestamp to read
+# @param[in] param/timestep_end timestep_end/None/Integer/readwrite/False/
+#     \~English last timestamp to read
+# @param[in] param/channel_start channel_start/0/Integer/readwrite/False/
+#     \~English first channel to read
+# @param[in] param/channel_end channel_end/None/Integer/readwrite/False/
+#     \~English last channel to read
+# @param[in] param/pol_start pol_start/0/Integer/readwrite/False/
+#     \~English first pol to read
+# @param[in] param/pol_end pol_end/None/Integer/readwrite/False/
+#     \~English last pol to read
+# @param[in] port/ms ms/PathBasedDrop/
+#     \~English PathBasedDrop to a Measurement Set
+# @param[out] port/uvw uvw/npy/
+#     \~English Port containing UVWs in npy format
+# @param[out] port/freq freq/npy/
+#     \~English Port containing frequencies in npy format
+# @param[out] port/vis vis/npy/
+#     \~English Port containing visibilities in npy format
+# @param[out] port/weight_spectrum weight_spectrum/npy/
+#     \~English Port containing weight spectrum in npy format
+# @param[out] port/flag flag/npy/
+#     \~English Port containing flags in npy format
+# @param[out] port/weight weight/npy/
+#     \~English Port containing weights in npy format
+# @par EAGLE_END
 class SimulatedStreamingMSReadApp(BarrierAppDROP):
     component_meta = dlg_component(
         "SimulatedStreamingMSReadApp",
@@ -264,10 +310,6 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
 
         loop = asyncio.new_event_loop()
         loop.run_until_complete(process_streams())
-
-
-class StreamingMSReadApp(InputFiredAppDROP):
-    pass
 
 
 ##
