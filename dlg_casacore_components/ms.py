@@ -132,12 +132,12 @@ class MSReadApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    timestep_start: int = dlg_int_param("timestep_start", 0)
-    timestep_end: Optional[int] = dlg_int_param("timestep_start", None)
-    channel_start: int = dlg_int_param("channel_start", 0)
-    channel_end: Optional[int] = dlg_int_param("channel_end", None)
-    pol_start: int = dlg_int_param("pol_start", 0)
-    pol_end: Optional[int] = dlg_int_param("pol_end", None)
+    timestep_start: int = dlg_int_param("timestep_start", 0)  # type: ignore
+    timestep_end: Optional[int] = dlg_int_param("timestep_start", None)  # type: ignore
+    channel_start: int = dlg_int_param("channel_start", 0)  # type: ignore
+    channel_end: Optional[int] = dlg_int_param("channel_end", None)  # type: ignore
+    pol_start: int = dlg_int_param("pol_start", 0)  # type: ignore
+    pol_end: Optional[int] = dlg_int_param("pol_end", None)  # type: ignore
 
     def run(self):
         if len(self.inputs) < 1:
@@ -230,11 +230,11 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    channel_start: int = dlg_int_param("channel_start", 0)
-    channel_end: Optional[int] = dlg_int_param("channel_end", None)
-    pol_start: int = dlg_int_param("pol_start", 0)
-    pol_end: Optional[int] = dlg_int_param("pol_end", None)
-    realtime_scale: float = dlg_float_param("realtime_scale", 1.0)
+    channel_start: int = dlg_int_param("channel_start", 0)  # type: ignore
+    channel_end: Optional[int] = dlg_int_param("channel_end", None)  # type: ignore
+    pol_start: int = dlg_int_param("pol_start", 0)  # type: ignore
+    pol_end: Optional[int] = dlg_int_param("pol_end", None)  # type: ignore
+    realtime_scale: float = dlg_float_param("realtime_scale", 1.0)  # type: ignore
 
     def run(self):
         if len(self.inputs) < 1:
@@ -377,12 +377,12 @@ class MSReadRowApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    row_start: int = dlg_int_param("row_start", 0)
-    row_end: int = dlg_int_param("row_end", -1)
-    channel_start: int = dlg_int_param("channel_start", 0)
-    channel_end: Optional[int] = dlg_int_param("channel_end", None)
-    pol_start: int = dlg_int_param("pol_start", 0)
-    pol_end: Optional[int] = dlg_int_param("pol_end", None)
+    row_start: int = dlg_int_param("row_start", 0)  # type: ignore
+    row_end: int = dlg_int_param("row_end", -1)  # type: ignore
+    channel_start: int = dlg_int_param("channel_start", 0)  # type: ignore
+    channel_end: Optional[int] = dlg_int_param("channel_end", None)  # type: ignore
+    pol_start: int = dlg_int_param("pol_start", 0)  # type: ignore
+    pol_end: Optional[int] = dlg_int_param("pol_end", None)  # type: ignore
 
     def run(self):
         if len(self.inputs) < 1:
@@ -465,8 +465,8 @@ class MSCopyUpdateApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    start_row: int = dlg_int_param("start_row", 0)
-    num_rows: Optional[int] = dlg_int_param("num_rows", None)
+    start_row: int = dlg_int_param("start_row", 0)  # type: ignore
+    num_rows: Optional[int] = dlg_int_param("num_rows", None)  # type: ignore
 
     def run(self):
         ms_path = self.inputs[0].path

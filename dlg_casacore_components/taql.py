@@ -71,11 +71,11 @@ class TaqlQueryApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    column: str = dlg_string_param("column", None)
-    where: str = dlg_string_param("where", None)
-    orderby: str = dlg_string_param("orderby", None)
-    offset: int = dlg_int_param("offset", None)
-    limit: int = dlg_int_param("limit", None)
+    column: str = dlg_string_param("column", None)  # type: ignore
+    where: str = dlg_string_param("where", None)  # type: ignore
+    orderby: str = dlg_string_param("orderby", None)  # type: ignore
+    offset: int = dlg_int_param("offset", None)  # type: ignore
+    limit: int = dlg_int_param("limit", None)  # type: ignore
 
     def run(self):
         db = casacore.tables.table(self.inputs[0].path)
@@ -126,7 +126,7 @@ class TaqlColApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    query: str = dlg_string_param("query", None)
+    query: str = dlg_string_param("query", None)  # type: ignore
 
     def run(self):
         db = casacore.tables.table(self.inputs[0].path)
