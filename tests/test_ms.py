@@ -71,7 +71,7 @@ class MSTests(unittest.TestCase):
 
     def test_ms_read_single(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = MSReadApp("2", "2", timestamp_end=1)
+        drop = MSReadApp("2", "2", timestep_end=1)
         uvwDrop = InMemoryDROP("uvw", "uvw")
         freqDrop = InMemoryDROP("freq", "freq")
         visDrop = InMemoryDROP("vis", "vis")
@@ -156,7 +156,7 @@ class MSTests(unittest.TestCase):
     def test_streaming_ms_read(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
         drop = SimulatedStreamingMSReadApp("2", "2", realtime_scale=0.02)
-        # drop = SimulatedStreamingMSReadApp("2", "2", timestamp_end=1)
+        # drop = SimulatedStreamingMSReadApp("2", "2", timestep_end=1)
         endDrop = EndDROP("end", "end")
         freqDrop = InMemoryDROP("freq", "freq")
         uvwDrop = InMemoryDROP("uvw", "uvw")
