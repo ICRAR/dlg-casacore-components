@@ -15,10 +15,11 @@ on:
 
 jobs:
   linter:
+    needs: tests_linux
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8]
+        python-version: ['3.8']
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -32,11 +33,10 @@ jobs:
         run: make lint
 
   tests_linux:
-    needs: linter
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8]
+        python-version: ['3.8']
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:

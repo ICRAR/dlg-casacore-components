@@ -48,10 +48,20 @@ logger = logging.getLogger(__name__)
 # via Plasma.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/plasma_path Plasma Path//String/readwrite/
-#     \~English Path to plasma store.
-# @param[in] param/appclass Application class/dlg_casacore_components.cbf_sdp.MSStreamingPlasmaProcessor/String/readonly/
+# @param[in] cparam/appclass Application class/dlg_casacore_components.cbf_sdp.MSStreamingPlasmaProcessor/String/readonly/False//False/
 #     \~English Application class
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
+# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
+#     \~English Path to plasma store.
 # @param[out] port/ms MS/PathBasedDrop/
 #     \~English MS output path
 # @par EAGLE_END
@@ -125,9 +135,19 @@ class MSStreamingPlasmaProcessor(AppDROP):
 # @details Stream Measurement Set one correlator timestep at a time via Plasma.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] param/appclass Application class/dlg_casacore_components.cbf_sdp.MSPlasmaTestProcessor/String/readonly/
+# @param[in] cparam/appclass Application class/dlg_casacore_components.cbf_sdp.MSPlasmaTestProcessor/String/readonly/False//False/
 #     \~English Application class
-# @param[in] param/plasma_path Plasma Path//String/readwrite/
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
+# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
 #     \~English Path to plasma store
 # @param[in] port/ms Measurement Set/PathBasedDrop/
 #     \~English MS input path
@@ -187,19 +207,19 @@ class MSPlasmaStreamingConsumer(BarrierAppDROP):
 # @par EAGLE_START
 # @param category PythonApp
 # @param tag daliuge
-# @param[in] cparam/appclass Application class/dlg.apps.plasma.MSStreamingPlasmaProducer/String/readonly/False/
+# @param[in] cparam/appclass Application class/dlg.apps.plasma.MSStreamingPlasmaProducer/String/readonly/False//False/
 #     \~English Application class
-# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False/
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
 #     \~English Estimated execution time
-# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False/
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
 #     \~English Number of cores used
-# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False/
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
 #     \~English Is this node the start of a group?
-# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False/
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
-# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False/
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False/
+# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
 #     \~English Path to plasma store
 # @param[in] port/input_file Input File/File/
 #     \~English MS input file
