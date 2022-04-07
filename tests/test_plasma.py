@@ -46,7 +46,7 @@ INPUT_MS_NAME = "test.ms"
 INPUT_MS_ARCHIVE = Path(__file__).parent.absolute() / "data/test_ms.tar.gz"
 
 
-class CRCAppTests(unittest.TestCase):
+class TestPlasma(unittest.TestCase):
     td: TemporaryDirectory
     in_filepath: Path
     out_filepath: Path
