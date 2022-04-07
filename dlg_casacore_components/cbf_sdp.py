@@ -24,9 +24,11 @@ from threading import Thread
 from overrides import overrides
 
 # import ska_ser_logging
-from cbf_sdp import icd, msutils, plasma_processor, utils
-from cbf_sdp.consumers import plasma_writer
-from cbf_sdp.config import create_config_parser
+from realtime.receive.core import icd, msutils, utils
+from realtime.receive.modules.plasma import plasma_processor
+
+from realtime.receive.modules.consumers import plasma_writer
+from realtime.receive.core.config import create_config_parser
 from dlg.ddap_protocol import AppDROPStates
 from dlg.drop import AppDROP, BarrierAppDROP, PathBasedDrop
 from dlg.meta import (

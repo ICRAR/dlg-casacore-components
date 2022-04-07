@@ -34,7 +34,7 @@ from casacore import tables
 from dlg.drop import FileDROP, PlasmaDROP, InMemoryDROP
 import dlg.droputils as droputils
 
-from cbf_sdp.ms_asserter import MSAsserter
+from realtime.receive.core.ms_asserter import MSAsserter
 from dlg_casacore_components.plasma import MSPlasmaWriter, MSPlasmaReader
 from dlg_casacore_components.cbf_sdp import (
     MSStreamingPlasmaProcessor,
