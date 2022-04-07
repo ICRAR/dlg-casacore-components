@@ -3,5 +3,5 @@ numpy>=1.20.0
 pyarrow>=3.0.0
 python-casacore>=3.4.0
 -i https://artefact.skao.int/repository/pypi-all/simple
-ska-sdp-realtime-receive-core
-ska-sdp-realtime-receive-modules[plasma]
+ska-sdp-realtime-receive-modules[plasma]>=2.0.1
+ska-sdp-realtime-receive-core>=2.0.2
