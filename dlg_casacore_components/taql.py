@@ -48,15 +48,15 @@ logger = logging.getLogger(__name__)
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/column Column//String/readwrite/False//False/
+# @param[in] cparam/column Column//String/readwrite/False//False/
 #     \~English Column expression
-# @param[in] aparam/where Where//String/readwrite/False//False/
+# @param[in] cparam/where Where//String/readwrite/False//False/
 #     \~English Where expression
-# @param[in] aparam/orderby OrderBy//String/readwrite/False//False/
+# @param[in] cparam/orderby OrderBy//String/readwrite/False//False/
 #     \~English OrderBy expression
-# @param[in] aparam/offset Offset//Integer/readwrite/False//False/
+# @param[in] cparam/offset Offset//Integer/readwrite/False//False/
 #     \~English Offset expression
-# @param[in] aparam/limit Limit//Integer/readwrite/False//False/
+# @param[in] cparam/limit Limit//Integer/readwrite/False//False/
 #     \~English Limit expression
 # @param[in] port/ms MS/PathBasedDrop
 #     \~English MS input path
@@ -111,7 +111,7 @@ class TaqlQueryApp(BarrierAppDROP):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/query Query//String/readwrite/False//False/
+# @param[in] cparam/query Query//String/readwrite/False//False/
 #     \~English Query expression using table variable '$1'
 # @param[in] port/ms MS/PathBasedDrop
 #     \~English MS input path

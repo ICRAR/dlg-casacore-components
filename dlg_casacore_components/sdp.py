@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
+# @param[in] cparam/plasma_path Plasma Path//String/readwrite/False//False/
 #     \~English Path to plasma store.
 # @param[out] port/ms MS/PathBasedDrop/
 #     \~English MS output path
@@ -148,7 +148,7 @@ class MSStreamingPlasmaProcessor(AppDROP):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
+# @param[in] cparam/plasma_path Plasma Path//String/readwrite/False//False/
 #     \~English Path to plasma store
 # @param[in] port/ms Measurement Set/PathBasedDrop/
 #     \~English MS input path
@@ -220,7 +220,7 @@ class MSPlasmaStreamingConsumer(BarrierAppDROP):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
+# @param[in] cparam/plasma_path Plasma Path//String/readwrite/False//False/
 #     \~English Path to plasma store
 # @param[in] port/input_file Input File/File/
 #     \~English MS input file

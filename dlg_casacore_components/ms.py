@@ -97,17 +97,17 @@ def calculate_baselines(antennas: int, has_autocorrelations: bool):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
 #     \~English first timestamp to read
-# @param[in] aparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
 #     \~English last timestamp to read
-# @param[in] aparam/channel_start channel_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/channel_start channel_start/0/Integer/readwrite/False//False/
 #     \~English first channel to read
-# @param[in] aparam/channel_end channel_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/channel_end channel_end/None/Integer/readwrite/False//False/
 #     \~English last channel to read
-# @param[in] aparam/pol_start pol_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/pol_start pol_start/0/Integer/readwrite/False//False/
 #     \~English first pol to read
-# @param[in] aparam/pol_end pol_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/pol_end pol_end/None/Integer/readwrite/False//False/
 #     \~English last pol to read
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop to a Measurement Set
@@ -195,17 +195,17 @@ class MSReadApp(BarrierAppDROP):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
 #     \~English first timestamp to read
-# @param[in] aparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
 #     \~English last timestamp to read
-# @param[in] aparam/channel_start channel_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/channel_start channel_start/0/Integer/readwrite/False//False/
 #     \~English first channel to read
-# @param[in] aparam/channel_end channel_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/channel_end channel_end/None/Integer/readwrite/False//False/
 #     \~English last channel to read
-# @param[in] aparam/pol_start pol_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/pol_start pol_start/0/Integer/readwrite/False//False/
 #     \~English first pol to read
-# @param[in] aparam/pol_end pol_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/pol_end pol_end/None/Integer/readwrite/False//False/
 #     \~English last pol to read
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop to a Measurement Set
@@ -342,17 +342,17 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/row_start row_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/row_start row_start/0/Integer/readwrite/False//False/
 #     \~English first row to read
-# @param[in] aparam/row_end row_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/row_end row_end/None/Integer/readwrite/False//False/
 #     \~English last row to read
-# @param[in] aparam/channel_start channel_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/channel_start channel_start/0/Integer/readwrite/False//False/
 #     \~English first channel to read
-# @param[in] aparam/channel_end channel_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/channel_end channel_end/None/Integer/readwrite/False//False/
 #     \~English last channel to read
-# @param[in] aparam/pol_start pol_start/0/Integer/readwrite/False//False/
+# @param[in] cparam/pol_start pol_start/0/Integer/readwrite/False//False/
 #     \~English first pol to read
-# @param[in] aparam/pol_end pol_end/None/Integer/readwrite/False//False/
+# @param[in] cparam/pol_end pol_end/None/Integer/readwrite/False//False/
 #     \~English last pol to read
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop to a Measurement Set
@@ -446,9 +446,9 @@ class MSReadRowApp(BarrierAppDROP):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/start_row start_row/0/Integer/readwrite/False//False/
+# @param[in] cparam/start_row start_row/0/Integer/readwrite/False//False/
 #     \~English start row to update tables from
-# @param[in] aparam/start_row start_row//Integer/readwrite/False//False/
+# @param[in] cparam/start_row start_row//Integer/readwrite/False//False/
 #     \~English number of table rows to update
 # @param[in] aport/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop of a Measurement Set
