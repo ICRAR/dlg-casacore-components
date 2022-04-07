@@ -23,22 +23,20 @@ import time
 import sys
 import logging
 import tarfile
-import binascii
 import subprocess
 import unittest
-import io
 from pathlib import Path
 
-import pyarrow
-import pyarrow.plasma as plasma
-import numpy as np
 from casacore import tables
 
-from dlg.drop import FileDROP, PlasmaDROP
+from dlg.drop import FileDROP, InMemoryDROP
 import dlg.droputils as droputils
 
 from realtime.receive.core.ms_asserter import MSAsserter
-from dlg_casacore_components.plasma import MSPlasmaWriter, MSPlasmaReader
+from dlg_casacore_components.sdp import (
+    MSStreamingPlasmaProcessor,
+    MSStreamingPlasmaProducer,
+)
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 
@@ -87,62 +85,28 @@ class CRCAppTests(unittest.TestCase):
             comparison = j == b[i]
             self.assertEqual(comparison.all(), True)
 
-    def test_plasma_client(self):
-        client = pyarrow.plasma.connect("/tmp/plasma")
-        indata = np.ones([10, 10])
+    def test_sdp_stream(self):
+        prod = MSStreamingPlasmaProducer("1", "1")
+        cons = MSStreamingPlasmaProcessor(
+            "2",
+            "2",
+            processor_max_payloads=133,
+            # TODO: polling currently not blocking at
+            # 1s intervals and timing out
+            processor_timeout=None,
+        )
+        drop = InMemoryDROP("3", "3")
+        ms_in = FileDROP("4", "4", filepath=str(self.in_filepath))
+        ms_out = FileDROP("5", "5", filepath=str(self.out_filepath))
+        prod.addInput(ms_in)
+        prod.addOutput(drop)
+        drop.addStreamingConsumer(cons)
+        cons.addOutput(ms_out)
 
-        # Read+Write BytesIO
-        bio = io.BytesIO()
-        np.save(bio, indata, allow_pickle=False)
-        bio.seek(0)
+        with droputils.DROPWaiterCtx(self, cons, 1000):
+            prod.async_execute()
 
-        # Direct Access
-        outdata = np.load(bio, allow_pickle=False)
-        np.testing.assert_array_equal(indata, outdata)
-
-        # Plasma Put+Get
-        objectid = client.put(bio.getvalue())
-        outdata = np.load(io.BytesIO(client.get(objectid)))
-        np.testing.assert_array_equal(indata, outdata)
-
-        # Plasma Raw Buffer Put+Get
-        objectid = client.put_raw_buffer(bio.getbuffer())
-        [buf] = client.get_buffers([objectid])
-        outdata = np.load(io.BytesIO(buf))
-        np.testing.assert_array_equal(indata, outdata)
-
-        # Plasma Raw Buffer Create+Seal+Get
-        objectid = plasma.ObjectID(np.random.bytes(20))
-        plasma_buffer = client.create(objectid, bio.__sizeof__())
-        writer = pyarrow.FixedSizeBufferWriter(plasma_buffer)
-        writer.write(bio.getbuffer())
-        client.seal(objectid)
-        [buf] = client.get_buffers([objectid])
-        outdata = np.load(io.BytesIO(buf))
-        np.testing.assert_array_equal(indata, outdata)
-
-    def test_plasma_writer(self):
-        a = FileDROP("a", "a", filepath=str(self.in_filepath))
-        b = MSPlasmaWriter("b", "b")
-        c = PlasmaDROP("c", "c")
-        d = MSPlasmaReader("d", "d")
-        e = FileDROP("e", "e", filepath=str(self.out_filepath))
-
-        b.addInput(a)
-        b.addOutput(c)
-        d.addInput(c)
-        d.addOutput(e)
-
-        # Check the MS DATA content is the same as original
-        with droputils.DROPWaiterCtx(self, e, 5):
-            a.setCompleted()
-        # time.sleep(5)
-
-        # self.compare_ms(in_file, out_file)
+        time.sleep(5)
+        assert Path.is_dir(self.in_filepath), f"{self.in_filepath}"
+        assert Path.is_dir(self.out_filepath), f"{self.out_filepath}"
         self.compare_measurement_sets(str(self.in_filepath), str(self.out_filepath))
-
-        # check we can go from dataURL to plasma ID
-        client = plasma.connect("/tmp/plasma")
-        a = c.dataURL.split("//")[1]
-        a = binascii.unhexlify(a)
-        client.get_buffers([plasma.ObjectID(a)])
