@@ -5,7 +5,7 @@ RUN apt install -y python3-numpy
 
 # cache packages
 RUN pip3 install daliuge-engine pyarrow python-casacore
-RUN pip3 install ska-sdp-dal-schemas ska-sdp-cbf-emulator>=1.6.11 -i https://artefact.skao.int/repository/pypi-all/simple
+RUN pip3 install ska-sdp-realtime-receive-core ska-sdp-realtime-receive-modules[plasma] -i https://artefact.skao.int/repository/pypi-all/simple
 RUN pip3 install pytest coverage flake8 black isort pytest-cov codecov mypy gitchangelog mkdocs
 
 COPY . /app

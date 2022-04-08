@@ -24,9 +24,11 @@ from threading import Thread
 from overrides import overrides
 
 # import ska_ser_logging
-from cbf_sdp import icd, msutils, plasma_processor, utils
-from cbf_sdp.consumers import plasma_writer
-from cbf_sdp.config import create_config_parser
+from realtime.receive.core import icd, msutils, utils
+from realtime.receive.core.config import create_config_parser
+from realtime.receive.modules.consumers import plasma_writer
+from realtime.receive.modules.plasma import plasma_processor
+
 from dlg.ddap_protocol import AppDROPStates
 from dlg.drop import AppDROP, BarrierAppDROP, PathBasedDrop
 from dlg.meta import (
@@ -48,7 +50,7 @@ logger = logging.getLogger(__name__)
 # via Plasma.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] cparam/appclass Application class/dlg_casacore_components.cbf_sdp.MSStreamingPlasmaProcessor/String/readonly/False//False/
+# @param[in] cparam/appclass Application class/dlg_casacore_components.sdp.MSStreamingPlasmaProcessor/String/readonly/False//False/
 #     \~English Application class
 # @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
 #     \~English Estimated execution time
@@ -60,7 +62,7 @@ logger = logging.getLogger(__name__)
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
+# @param[in] cparam/plasma_path Plasma Path//String/readwrite/False//False/
 #     \~English Path to plasma store.
 # @param[out] port/ms MS/PathBasedDrop/
 #     \~English MS output path
@@ -74,9 +76,9 @@ class MSStreamingPlasmaProcessor(AppDROP):
         [dlg_streaming_input("binary/*")],
     )
 
-    plasma_path: str = dlg_string_param("plasma_path", "/tmp/plasma")
-    processor_timeout: float = dlg_float_param("process_timeout", 1.0)
-    processor_max_payloads: int = dlg_float_param("processor_max_payloads", None)
+    plasma_path: str = dlg_string_param("plasma_path", "/tmp/plasma")  # type: ignore
+    processor_timeout: float = dlg_float_param("process_timeout", 1.0)  # type: ignore
+    processor_max_payloads: int = dlg_float_param("processor_max_payloads", None)  # type: ignore
 
     def initialize(self, **kwargs):
         self.thread = None
@@ -135,7 +137,7 @@ class MSStreamingPlasmaProcessor(AppDROP):
 # @details Stream Measurement Set one correlator timestep at a time via Plasma.
 # @par EAGLE_START
 # @param category PythonApp
-# @param[in] cparam/appclass Application class/dlg_casacore_components.cbf_sdp.MSPlasmaTestProcessor/String/readonly/False//False/
+# @param[in] cparam/appclass Application class/dlg_casacore_components.sdp.MSPlasmaTestProcessor/String/readonly/False//False/
 #     \~English Application class
 # @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
 #     \~English Estimated execution time
@@ -147,7 +149,7 @@ class MSStreamingPlasmaProcessor(AppDROP):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
+# @param[in] cparam/plasma_path Plasma Path//String/readwrite/False//False/
 #     \~English Path to plasma store
 # @param[in] port/ms Measurement Set/PathBasedDrop/
 #     \~English MS input path
@@ -163,7 +165,7 @@ class MSPlasmaStreamingConsumer(BarrierAppDROP):
         [dlg_streaming_input("binary/*")],
     )
 
-    plasma_path = dlg_string_param("plasma_path", "/tmp/plasma")
+    plasma_path: str = dlg_string_param("plasma_path", "/tmp/plasma")  # type: ignore
 
     def initialize(self, **kwargs):
         super().initialize(**kwargs)
@@ -219,7 +221,7 @@ class MSPlasmaStreamingConsumer(BarrierAppDROP):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] aparam/plasma_path Plasma Path//String/readwrite/False//False/
+# @param[in] cparam/plasma_path Plasma Path//String/readwrite/False//False/
 #     \~English Path to plasma store
 # @param[in] port/input_file Input File/File/
 #     \~English MS input file
@@ -235,7 +237,7 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
         [dlg_streaming_input("binary/*")],
     )
 
-    plasma_path = dlg_string_param("plasma_path", "/tmp/plasma")
+    plasma_path: str = dlg_string_param("plasma_path", "/tmp/plasma")  # type: ignore
 
     def initialize(self, **kwargs):
         super().initialize(**kwargs)
