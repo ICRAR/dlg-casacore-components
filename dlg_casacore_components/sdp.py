@@ -24,7 +24,7 @@ from threading import Thread
 from overrides import overrides
 
 # import ska_ser_logging
-from realtime.receive.core import icd, msutils, utils
+from realtime.receive.core import icd, msutils, FakeTM
 from realtime.receive.core.config import create_config_parser
 from realtime.receive.modules.consumers import plasma_writer
 from realtime.receive.modules.plasma import plasma_processor
@@ -177,7 +177,7 @@ class MSPlasmaStreamingConsumer(BarrierAppDROP):
         }
 
     async def _run_producer(self):
-        c = plasma_writer.consumer(self.config, utils.FakeTM(self.input_file))
+        c = plasma_writer.consumer(self.config, FakeTM(self.input_file))
         while not c.find_processors():
             await asyncio.sleep(0.1)
 
@@ -245,7 +245,7 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
         self.config["reception"] = {"consumer": "plasma_writer", "test_entry": 5, "plasma_path": self.plasma_path}
 
     async def _run_producer(self):
-        c = plasma_writer.consumer(self.config, utils.FakeTM(self.input_file))
+        c = plasma_writer.consumer(self.config, FakeTM(self.input_file))
         while not c.find_processors():
             await asyncio.sleep(0.1)
 
