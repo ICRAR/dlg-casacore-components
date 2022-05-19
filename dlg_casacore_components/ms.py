@@ -145,7 +145,7 @@ class MSReadApp(BarrierAppDROP):
         if ('inputs' in self.parameters and isinstance(self.parameters['inputs'][0], dict)):
             for i in range(len(self._inputs)):
                 key = list(self.parameters['inputs'][i].values())[0]
-                value = self.inputs[list(self.parameters['inputs'][i].keys())[0]]
+                value = self._inputs[list(self.parameters['inputs'][i].keys())[0]]
                 named_inputs[key] = value
 
         logger.debug(named_inputs)
