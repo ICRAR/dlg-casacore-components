@@ -23,7 +23,7 @@ import logging
 import os
 from dataclasses import dataclass
 import time
-from typing import AsyncIterable, Callable, Dict, Optional, Tuple, Union
+from typing import AsyncIterable, Callable, Dict, Generic, Optional, Tuple, TypeVar, Union
 
 import casacore
 import casacore.tables
@@ -51,11 +51,12 @@ from dlg.meta import (
 
 logger = logging.getLogger(__name__)
 
-class LazyObject(object):
-    def __init__(self, func):
+T = TypeVar('T')
+class LazyObject(Generic[T]):
+    def __init__(self, func: Callable[[], T]):
         self.func = func
         self.value = None
-    def __call__(self):
+    def __call__(self) -> T:
         if self.value is None:
             self.value = self.func()
         return self.value
@@ -215,13 +216,13 @@ class MSReadApp(BarrierAppDROP):
         )
 
         # table, name, dtype, slicer
-        mssw = LazyObject(casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True))
-        uvw = LazyObject(read_ms_array(msm, "UVW", "float64", row_range, default_slice))
-        freq = LazyObject(read_ms_array(mssw(), "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]))
-        data = LazyObject(read_ms_array(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice))
-        flag = LazyObject(read_ms_array(msm, "FLAG", "bool", row_range, tensor_slice))
-        weight = LazyObject(read_ms_array(msm, "WEIGHT", "float64", row_range, default_slice))
-        weight_spectrum = LazyObject(read_ms_array(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice))
+        mssw = LazyObject(lambda: casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True))
+        uvw = LazyObject(lambda: read_ms_array(msm, "UVW", "float64", row_range, default_slice))
+        freq = LazyObject(lambda: read_ms_array(mssw(), "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]))
+        data = LazyObject(lambda: read_ms_array(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice))
+        flag = LazyObject(lambda: read_ms_array(msm, "FLAG", "bool", row_range, tensor_slice))
+        weight = LazyObject(lambda: read_ms_array(msm, "WEIGHT", "float64", row_range, default_slice))
+        weight_spectrum = LazyObject(lambda: read_ms_array(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice))
         
         ms_map: Dict[str, Callable[[], np.ndarray]] = {
             "uvw": uvw,
