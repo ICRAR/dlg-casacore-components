@@ -147,8 +147,15 @@ class MSReadApp(BarrierAppDROP):
                 key = list(self.parameters['inputs'][i].values())[0]
                 value = self._inputs[list(self.parameters['inputs'][i].keys())[0]]
                 named_inputs[key] = value
+        logger.debug(f"named_inputs: {named_inputs}")
 
-        logger.debug(named_inputs)
+        named_outputs = collections.OrderedDict()
+        if ('outputs' in self.parameters and isinstance(self.parameters['outputs'][0], dict)):
+            for i in range(len(self._outputs)):
+                key = list(self.parameters['outputs'][i].values())[0]
+                value = self._outputs[list(self.parameters['outputs'][i].keys())[0]]
+                named_outputs[key] = value
+        logger.debug(f"named_outputs: {named_outputs}")
 
         if len(self.inputs) < 1:
             raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
