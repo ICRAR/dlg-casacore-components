@@ -18,6 +18,7 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 import asyncio
+import collections
 import logging
 import os
 from dataclasses import dataclass
@@ -132,14 +133,23 @@ class MSReadApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    timestep_start: int = dlg_int_param("timestep_start", 0)  # type: ignore
+    timestep_start: int         = dlg_int_param("timestep_start", 0)  # type: ignore
     timestep_end: Optional[int] = dlg_int_param("timestep_start", None)  # type: ignore
-    channel_start: int = dlg_int_param("channel_start", 0)  # type: ignore
-    channel_end: Optional[int] = dlg_int_param("channel_end", None)  # type: ignore
-    pol_start: int = dlg_int_param("pol_start", 0)  # type: ignore
-    pol_end: Optional[int] = dlg_int_param("pol_end", None)  # type: ignore
+    channel_start: int          = dlg_int_param("channel_start", 0)  # type: ignore
+    channel_end: Optional[int]  = dlg_int_param("channel_end", None)  # type: ignore
+    pol_start: int              = dlg_int_param("pol_start", 0)  # type: ignore
+    pol_end: Optional[int]      = dlg_int_param("pol_end", None)  # type: ignore
 
     def run(self):
+        named_inputs = collections.OrderedDict()
+        if ('inputs' in self.parameters and isinstance(self.parameters['inputs'][0], dict)):
+            for i in range(len(self._inputs)):
+                key = list(self.parameters['inputs'][i].values())[0]
+                value = self.inputs[list(self.parameters['inputs'][i].keys())[0]]
+                named_inputs[key] = value
+
+        logger.debug(named_inputs)
+
         if len(self.inputs) < 1:
             raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
         ms_path: str = self.inputs[0].path
