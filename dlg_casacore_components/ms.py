@@ -18,12 +18,12 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 import asyncio
-import collections
+from collections import OrderedDict
 import logging
 import os
 from dataclasses import dataclass
 import time
-from typing import AsyncIterable, Optional, Tuple, Union
+from typing import AsyncIterable, Callable, Dict, Optional, Tuple, Union
 
 import casacore
 import casacore.tables
@@ -38,7 +38,7 @@ except ImportError:
         raise NotImplementedError()
 
 
-from dlg.drop import BarrierAppDROP, ContainerDROP
+from dlg.drop import BarrierAppDROP, ContainerDROP, DataDROP
 from dlg.exceptions import DaliugeException
 from dlg.meta import (
     dlg_batch_input,
@@ -51,31 +51,60 @@ from dlg.meta import (
 
 logger = logging.getLogger(__name__)
 
+class LazyObject(object):
+    def __init__(self, func):
+        self.func = func
+        self.value = None
+    def __call__(self):
+        if self.value is None:
+            self.value = self.func()
+        return self.value
 
 @dataclass
 class PortOptions:
     """MSQuery parameters"""
 
     table: casacore.tables.table
-    name: str
+    select: str
     dtype: str
     rows: Tuple[int, int]  # (start, end) # table row slicer
     slicer: Union[slice, Tuple[slice, slice, slice]]  # tensor slicer
 
 
-def opt2array(opt):
+def read_ms_array(
+        table: casacore.tables.table,
+        select: str,
+        dtype: str,
+        rows: Tuple[int, int],
+        slicer: Union[slice, Tuple[slice, slice, slice]]) -> np.ndarray:
+    """
+    Reads an ndarray from a measurement set table.
+
+    Args:
+        table (casacore.tables.table): _description_
+        select (str): _description_
+        dtype (str): _description_
+        rows (Tuple[int, int]): _description_
+        slicer (Union[slice, Tuple[slice, slice, slice]]): _description_
+
+    Returns:
+        np.ndarray: _description_
+    """
     data: np.ndarray = (
-        opt.table.query(
-            columns=f"{opt.name} as COL",
-            offset=opt.rows[0],
-            limit=opt.rows[1] - opt.rows[0],
+        table.query(
+            columns=f"{select} as COL",
+            offset=rows[0],
+            limit=rows[1] - rows[0],
         )
-        .getcol("COL")[opt.slicer]
+        .getcol("COL")[slicer]
         .squeeze()
-        .astype(opt.dtype)
+        .astype(dtype)
     )
     return data
 
+
+def opt2array(opts: PortOptions):
+    return read_ms_array(opts.table, opts.select, opts.dtype, opts.rows, opts.slicer)
 
 def calculate_baselines(antennas: int, has_autocorrelations: bool):
     return (antennas + 1) * antennas // 2 if has_autocorrelations else (antennas - 1) * antennas // 2
@@ -140,30 +169,33 @@ class MSReadApp(BarrierAppDROP):
     pol_start: int              = dlg_int_param("pol_start", 0)  # type: ignore
     pol_end: Optional[int]      = dlg_int_param("pol_end", None)  # type: ignore
 
-    def run(self):
-        named_inputs = collections.OrderedDict()
+    def _generate_port_mapping(self):
+        self.named_inputs: OrderedDict[str, DataDROP] = OrderedDict()
         if ('inputs' in self.parameters and isinstance(self.parameters['inputs'][0], dict)):
             for i in range(len(self._inputs)):
                 key = list(self.parameters['inputs'][i].values())[0]
                 value = self._inputs[list(self.parameters['inputs'][i].keys())[0]]
-                named_inputs[key] = value
-        logger.debug(f"named_inputs: {named_inputs}")
+                self.named_inputs[key] = value
+        logger.debug(f"named_inputs: {self.named_inputs}")
 
-        named_outputs = collections.OrderedDict()
+        self.named_outputs: OrderedDict[str, DataDROP] = OrderedDict()
         if ('outputs' in self.parameters and isinstance(self.parameters['outputs'][0], dict)):
             for i in range(len(self._outputs)):
                 key = list(self.parameters['outputs'][i].values())[0]
                 value = self._outputs[list(self.parameters['outputs'][i].keys())[0]]
-                named_outputs[key] = value
-        logger.debug(f"named_outputs: {named_outputs}")
+                self.named_outputs[key] = value
+        logger.debug(f"named_outputs: {self.named_outputs}")
+
+    def run(self):
+        self._generate_port_mapping()
 
         if len(self.inputs) < 1:
             raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
         ms_path: str = self.inputs[0].path
         assert os.path.exists(ms_path)
         assert casacore.tables.tableexists(ms_path)
+
         msm = casacore.tables.table(ms_path, readonly=True)
-        mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
 
         baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
         has_autocorrelations: bool = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
@@ -174,7 +206,8 @@ class MSReadApp(BarrierAppDROP):
 
         # TODO: baseline slicing should be possible, use 4D reshape and index based slicing
         default_slice = slice(0, None)
-        # (row, channels, pols)
+        
+        # tensor_slice(row, channels, pols)
         tensor_slice = (
             default_slice,
             slice(self.channel_start, self.channel_end),
@@ -182,17 +215,26 @@ class MSReadApp(BarrierAppDROP):
         )
 
         # table, name, dtype, slicer
-        portOptions = [
-            PortOptions(msm, "UVW", "float64", row_range, default_slice),
-            PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]),
-            PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice),
-            PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice),
-            PortOptions(msm, "FLAG", "bool", row_range, tensor_slice),
-            PortOptions(msm, "WEIGHT", "float64", row_range, default_slice),
-        ]
+        mssw = LazyObject(casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True))
+        uvw = LazyObject(read_ms_array(msm, "UVW", "float64", row_range, default_slice))
+        freq = LazyObject(read_ms_array(mssw(), "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]))
+        data = LazyObject(read_ms_array(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice))
+        flag = LazyObject(read_ms_array(msm, "FLAG", "bool", row_range, tensor_slice))
+        weight = LazyObject(read_ms_array(msm, "WEIGHT", "float64", row_range, default_slice))
+        weight_spectrum = LazyObject(read_ms_array(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice))
+        
+        ms_map: Dict[str, Callable[[], np.ndarray]] = {
+            "uvw": uvw,
+            "freq": freq,
+            "vis": data,
+            "data": data,
+            "flag": flag,
+            "weight": weight,
+            "weight_spectrum": weight_spectrum,
+        }
 
-        for i, opt in enumerate(portOptions[0 : len(self.outputs)]):
-            save_npy(self.outputs[i], opt2array(opt))
+        for port_name, output in self.named_outputs.items():
+            save_npy(output, ms_map[port_name]())
 
 
 ##
@@ -318,8 +360,8 @@ class SimulatedStreamingMSReadApp(BarrierAppDROP):
                 array = opt2array(opts)
                 wait_time = calc_wait_time(time_index)
                 if wait_time < 0 and timesteps > 1:
-                    # logger.error(f"{opts.name} stream cant keep up, wait_time: {wait_time}")
-                    raise Exception(f"{opts.name} stream cant keep up, wait_time: {wait_time}")
+                    # logger.error(f"{opts.select} stream cant keep up, wait_time: {wait_time}")
+                    raise Exception(f"{opts.select} stream cant keep up, wait_time: {wait_time}")
                 await asyncio.sleep(wait_time)
                 yield array
 
