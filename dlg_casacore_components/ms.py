@@ -170,25 +170,28 @@ class MSReadApp(BarrierAppDROP):
     pol_start: int              = dlg_int_param("pol_start", 0)  # type: ignore
     pol_end: Optional[int]      = dlg_int_param("pol_end", None)  # type: ignore
 
-    def _generate_port_mapping(self):
-        self.named_inputs: OrderedDict[str, DataDROP] = OrderedDict()
+    def _generate_named_inputs(self):
+        named_inputs: OrderedDict[str, DataDROP] = OrderedDict()
         if ('inputs' in self.parameters and isinstance(self.parameters['inputs'][0], dict)):
             for i in range(len(self._inputs)):
                 key = list(self.parameters['inputs'][i].values())[0]
                 value = self._inputs[list(self.parameters['inputs'][i].keys())[0]]
-                self.named_inputs[key] = value
-        logger.debug(f"named_inputs: {self.named_inputs}")
+                named_inputs[key] = value
+        logger.debug(f"generated named_inputs: {named_inputs}")
+        return named_inputs
 
-        self.named_outputs: OrderedDict[str, DataDROP] = OrderedDict()
+    def _generate_named_outputs(self):
+        named_outputs: OrderedDict[str, DataDROP] = OrderedDict()
         if ('outputs' in self.parameters and isinstance(self.parameters['outputs'][0], dict)):
             for i in range(len(self._outputs)):
                 key = list(self.parameters['outputs'][i].values())[0]
                 value = self._outputs[list(self.parameters['outputs'][i].keys())[0]]
-                self.named_outputs[key] = value
-        logger.debug(f"named_outputs: {self.named_outputs}")
+                named_outputs[key] = value
+        logger.debug(f"generated named_outputs: {named_outputs}")
+        return named_outputs
 
     def run(self):
-        self._generate_port_mapping()
+        named_outputs = self._generate_named_outputs()
 
         if len(self.inputs) < 1:
             raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
@@ -206,25 +209,24 @@ class MSReadApp(BarrierAppDROP):
         row_range = (row_start, row_end)
 
         # TODO: baseline slicing should be possible, use 4D reshape and index based slicing
-        default_slice = slice(0, None)
-        
+        all_slice = slice(0, None)
+
         # tensor_slice(row, channels, pols)
         tensor_slice = (
-            default_slice,
+            all_slice,
             slice(self.channel_start, self.channel_end),
             slice(self.pol_start, self.pol_end),
         )
 
-        # table, name, dtype, slicer
         mssw = LazyObject(lambda: casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True))
-        uvw = LazyObject(lambda: read_ms_array(msm, "UVW", "float64", row_range, default_slice))
+        # table, name, dtype, rows, slicer
+        uvw = LazyObject(lambda: read_ms_array(msm, "UVW", "float64", row_range, all_slice))
         freq = LazyObject(lambda: read_ms_array(mssw(), "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]))
         data = LazyObject(lambda: read_ms_array(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice))
         flag = LazyObject(lambda: read_ms_array(msm, "FLAG", "bool", row_range, tensor_slice))
-        weight = LazyObject(lambda: read_ms_array(msm, "WEIGHT", "float64", row_range, default_slice))
+        weight = LazyObject(lambda: read_ms_array(msm, "WEIGHT", "float64", row_range, all_slice))
         weight_spectrum = LazyObject(lambda: read_ms_array(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice))
-        
-        ms_map: Dict[str, Callable[[], np.ndarray]] = {
+        ms_map: Dict[str, LazyObject[np.ndarray]] = {
             "uvw": uvw,
             "freq": freq,
             "vis": data,
@@ -234,7 +236,7 @@ class MSReadApp(BarrierAppDROP):
             "weight_spectrum": weight_spectrum,
         }
 
-        for port_name, output in self.named_outputs.items():
+        for port_name, output in named_outputs.items():
             save_npy(output, ms_map[port_name]())
 
 
