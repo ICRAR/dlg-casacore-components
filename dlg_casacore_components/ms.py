@@ -37,7 +37,6 @@ except ImportError:
     def save_npy_stream(drop, stream):
         raise NotImplementedError()
 
-
 from dlg.drop import BarrierAppDROP, ContainerDROP, DataDROP
 from dlg.exceptions import DaliugeException
 from dlg.meta import (
@@ -52,6 +51,8 @@ from dlg.meta import (
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
+
+
 class LazyObject(Generic[T]):
     def __init__(self, func: Callable[[], T]):
         self.func = func
@@ -60,6 +61,7 @@ class LazyObject(Generic[T]):
         if self.value is None:
             self.value = self.func()
         return self.value
+
 
 @dataclass
 class PortOptions:
@@ -106,6 +108,7 @@ def read_ms_array(
 
 def opt2array(opts: PortOptions):
     return read_ms_array(opts.table, opts.select, opts.dtype, opts.rows, opts.slicer)
+
 
 def calculate_baselines(antennas: int, has_autocorrelations: bool):
     return (antennas + 1) * antennas // 2 if has_autocorrelations else (antennas - 1) * antennas // 2
@@ -192,6 +195,7 @@ class MSReadApp(BarrierAppDROP):
 
     def run(self):
         named_outputs = self._generate_named_outputs()
+        print(f"arguments: {self.arguments.args}")
 
         if len(self.inputs) < 1:
             raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
