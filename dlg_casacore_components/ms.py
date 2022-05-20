@@ -195,7 +195,7 @@ class MSReadApp(BarrierAppDROP):
 
     def run(self):
         named_outputs = self._generate_named_outputs()
-        print(f"arguments: {self.arguments.args}")
+        print(f"appArgs: {self.parameters["applicationArgs"]}")
 
         if len(self.inputs) < 1:
             raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
