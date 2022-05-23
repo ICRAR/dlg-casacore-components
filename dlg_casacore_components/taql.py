@@ -19,14 +19,15 @@
 #
 import logging
 
-from dlg.drop import BarrierAppDROP
-from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_streaming_input, dlg_string_param, dlg_int_param
 import casacore.tables
+from dlg.drop import BarrierAppDROP
+from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_int_param, dlg_streaming_input, dlg_string_param
 
 try:
-    from dlg.droputils import save_npy, load_npy
+    from dlg.droputils import load_npy, save_npy
 except ImportError:
-    from dlg.droputils import save_numpy as save_npy, load_numpy as load_npy
+    from dlg.droputils import load_numpy as load_npy
+    from dlg.droputils import save_numpy as save_npy
 
 logger = logging.getLogger(__name__)
 

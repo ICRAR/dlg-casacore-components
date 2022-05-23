@@ -21,24 +21,17 @@ import asyncio
 import logging
 from multiprocessing import Lock
 from threading import Thread
-from overrides import overrides
-
-# import ska_ser_logging
-from realtime.receive.core import icd, msutils, FakeTM
-from realtime.receive.core.config import create_config_parser
-from realtime.receive.modules.consumers import plasma_writer
-from realtime.receive.modules.plasma import plasma_processor
 
 from dlg.ddap_protocol import AppDROPStates
 from dlg.drop import AppDROP, BarrierAppDROP, PathBasedDrop
-from dlg.meta import (
-    dlg_batch_input,
-    dlg_batch_output,
-    dlg_component,
-    dlg_float_param,
-    dlg_streaming_input,
-    dlg_string_param,
-)
+from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_float_param, dlg_streaming_input, dlg_string_param
+from overrides import overrides
+
+# import ska_ser_logging
+from realtime.receive.core import FakeTM, icd, msutils
+from realtime.receive.core.config import create_config_parser
+from realtime.receive.modules.consumers import plasma_writer
+from realtime.receive.modules.plasma import plasma_processor
 
 # ska_ser_logging.configure_logging(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

@@ -18,11 +18,11 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 import asyncio
-from collections import OrderedDict
 import logging
 import os
-from dataclasses import dataclass
 import time
+from collections import OrderedDict
+from dataclasses import dataclass
 from typing import AsyncIterable, Callable, Dict, Generic, Optional, Tuple, TypeVar, Union
 
 import casacore
@@ -30,33 +30,30 @@ import casacore.tables
 import numpy as np
 
 try:
-    from dlg.droputils import load_npy, save_npy, save_npy_stream, copyDropContents
+    from dlg.droputils import copyDropContents, load_npy, save_npy, save_npy_stream
 except ImportError:
-    from dlg.droputils import load_numpy as load_npy, save_numpy as save_npy, copyDropContents
+    from dlg.droputils import copyDropContents
+    from dlg.droputils import load_numpy as load_npy
+    from dlg.droputils import save_numpy as save_npy
 
     def save_npy_stream(drop, stream):
         raise NotImplementedError()
 
+
 from dlg.drop import BarrierAppDROP, ContainerDROP, DataDROP
 from dlg.exceptions import DaliugeException
-from dlg.meta import (
-    dlg_batch_input,
-    dlg_batch_output,
-    dlg_component,
-    dlg_int_param,
-    dlg_float_param,
-    dlg_streaming_input,
-)
+from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_float_param, dlg_int_param, dlg_streaming_input
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class LazyObject(Generic[T]):
     def __init__(self, func: Callable[[], T]):
         self.func = func
         self.value = None
+
     def __call__(self) -> T:
         if self.value is None:
             self.value = self.func()
@@ -75,11 +72,8 @@ class PortOptions:
 
 
 def read_ms_array(
-        table: casacore.tables.table,
-        select: str,
-        dtype: str,
-        rows: Tuple[int, int],
-        slicer: Union[slice, Tuple[slice, slice, slice]]) -> np.ndarray:
+    table: casacore.tables.table, select: str, dtype: str, rows: Tuple[int, int], slicer: Union[slice, Tuple[slice, slice, slice]]
+) -> np.ndarray:
     """
     Reads an ndarray from a measurement set table.
 
@@ -131,17 +125,17 @@ def calculate_baselines(antennas: int, has_autocorrelations: bool):
 #     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
 # @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
 #     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] cparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
+# @param[in] aparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
 #     \~English first timestamp to read
-# @param[in] cparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
+# @param[in] aparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
 #     \~English last timestamp to read
-# @param[in] cparam/channel_start channel_start/0/Integer/readwrite/False//False/
+# @param[in] aparam/channel_start channel_start/0/Integer/readwrite/False//False/
 #     \~English first channel to read
-# @param[in] cparam/channel_end channel_end/None/Integer/readwrite/False//False/
+# @param[in] aparam/channel_end channel_end/None/Integer/readwrite/False//False/
 #     \~English last channel to read
-# @param[in] cparam/pol_start pol_start/0/Integer/readwrite/False//False/
+# @param[in] aparam/pol_start pol_start/0/Integer/readwrite/False//False/
 #     \~English first pol to read
-# @param[in] cparam/pol_end pol_end/None/Integer/readwrite/False//False/
+# @param[in] aparam/pol_end pol_end/None/Integer/readwrite/False//False/
 #     \~English last pol to read
 # @param[in] port/ms ms/PathBasedDrop/
 #     \~English PathBasedDrop to a Measurement Set
@@ -166,29 +160,29 @@ class MSReadApp(BarrierAppDROP):
         [dlg_batch_output("binary/*", [])],
         [dlg_streaming_input("binary/*")],
     )
-    timestep_start: int         = dlg_int_param("timestep_start", 0)  # type: ignore
+    timestep_start: int = dlg_int_param("timestep_start", 0)  # type: ignore
     timestep_end: Optional[int] = dlg_int_param("timestep_start", None)  # type: ignore
-    channel_start: int          = dlg_int_param("channel_start", 0)  # type: ignore
-    channel_end: Optional[int]  = dlg_int_param("channel_end", None)  # type: ignore
-    pol_start: int              = dlg_int_param("pol_start", 0)  # type: ignore
-    pol_end: Optional[int]      = dlg_int_param("pol_end", None)  # type: ignore
+    channel_start: int = dlg_int_param("channel_start", 0)  # type: ignore
+    channel_end: Optional[int] = dlg_int_param("channel_end", None)  # type: ignore
+    pol_start: int = dlg_int_param("pol_start", 0)  # type: ignore
+    pol_end: Optional[int] = dlg_int_param("pol_end", None)  # type: ignore
 
     def _generate_named_inputs(self):
         named_inputs: OrderedDict[str, DataDROP] = OrderedDict()
-        if ('inputs' in self.parameters and isinstance(self.parameters['inputs'][0], dict)):
+        if "inputs" in self.parameters and isinstance(self.parameters["inputs"][0], dict):
             for i in range(len(self._inputs)):
-                key = list(self.parameters['inputs'][i].values())[0]
-                value = self._inputs[list(self.parameters['inputs'][i].keys())[0]]
+                key = list(self.parameters["inputs"][i].values())[0]
+                value = self._inputs[list(self.parameters["inputs"][i].keys())[0]]
                 named_inputs[key] = value
         logger.debug(f"generated named_inputs: {named_inputs}")
         return named_inputs
 
     def _generate_named_outputs(self):
         named_outputs: OrderedDict[str, DataDROP] = OrderedDict()
-        if ('outputs' in self.parameters and isinstance(self.parameters['outputs'][0], dict)):
+        if "outputs" in self.parameters and isinstance(self.parameters["outputs"][0], dict):
             for i in range(len(self._outputs)):
-                key = list(self.parameters['outputs'][i].values())[0]
-                value = self._outputs[list(self.parameters['outputs'][i].keys())[0]]
+                key = list(self.parameters["outputs"][i].values())[0]
+                value = self._outputs[list(self.parameters["outputs"][i].keys())[0]]
                 named_outputs[key] = value
         logger.debug(f"generated named_outputs: {named_outputs}")
         return named_outputs
@@ -225,19 +219,35 @@ class MSReadApp(BarrierAppDROP):
         mssw = LazyObject(lambda: casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True))
         # table, name, dtype, rows, slicer
         uvw = LazyObject(lambda: read_ms_array(msm, "UVW", "float64", row_range, all_slice))
-        freq = LazyObject(lambda: read_ms_array(mssw(), "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]))
-        data = LazyObject(lambda: read_ms_array(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice))
+        chan_freq = LazyObject(lambda: read_ms_array(mssw(), "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]))
+        chan_width = LazyObject(lambda: read_ms_array(mssw(), "CHAN_WIDTH", "float64", (0, -1), tensor_slice[1]))
+        msm_time = LazyObject(lambda: read_ms_array(msm, "TIME", "float64", row_range, all_slice))
+        data = LazyObject(
+            lambda: read_ms_array(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice)
+        )
         flag = LazyObject(lambda: read_ms_array(msm, "FLAG", "bool", row_range, tensor_slice))
         weight = LazyObject(lambda: read_ms_array(msm, "WEIGHT", "float64", row_range, all_slice))
-        weight_spectrum = LazyObject(lambda: read_ms_array(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice))
+        sigma = LazyObject(lambda: read_ms_array(msm, "SIGMA", "float64", row_range, all_slice))
+        weight_spectrum = LazyObject(
+            lambda: read_ms_array(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice)
+        )
+        sigma_spectrum = LazyObject(
+            lambda: read_ms_array(msm, "REPLACEMASKED(SIGMA_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice)
+        )
         ms_map: Dict[str, LazyObject[np.ndarray]] = {
             "uvw": uvw,
-            "freq": freq,
+            "chan_freq": chan_freq,
+            "freq": chan_freq,
+            "chan_width": chan_width,
+            "width": chan_width,
+            "time": msm_time,
             "vis": data,
             "data": data,
             "flag": flag,
             "weight": weight,
+            "sigma": sigma,
             "weight_spectrum": weight_spectrum,
+            "sigma_spectrum": sigma_spectrum,
         }
 
         for port_name, output in named_outputs.items():
