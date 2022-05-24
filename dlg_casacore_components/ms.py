@@ -42,7 +42,14 @@ except ImportError:
 
 from dlg.drop import BarrierAppDROP, ContainerDROP, DataDROP
 from dlg.exceptions import DaliugeException
-from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_float_param, dlg_int_param, dlg_streaming_input
+from dlg.meta import (
+    dlg_batch_input,
+    dlg_batch_output,
+    dlg_component,
+    dlg_float_param,
+    dlg_int_param,
+    dlg_streaming_input,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +79,11 @@ class PortOptions:
 
 
 def read_ms_array(
-    table: casacore.tables.table, select: str, dtype: str, rows: Tuple[int, int], slicer: Union[slice, Tuple[slice, slice, slice]]
+    table: casacore.tables.table,
+    select: str,
+    dtype: str,
+    rows: Tuple[int, int],
+    slicer: Union[slice, Tuple[slice, slice, slice]],
 ) -> np.ndarray:
     """
     Reads an ndarray from a measurement set table.
@@ -105,7 +116,11 @@ def opt2array(opts: PortOptions):
 
 
 def calculate_baselines(antennas: int, has_autocorrelations: bool):
-    return (antennas + 1) * antennas // 2 if has_autocorrelations else (antennas - 1) * antennas // 2
+    return (
+        (antennas + 1) * antennas // 2
+        if has_autocorrelations
+        else (antennas - 1) * antennas // 2
+    )
 
 
 ##
@@ -179,7 +194,9 @@ class MSReadApp(BarrierAppDROP):
 
     def _generate_named_outputs(self):
         named_outputs: OrderedDict[str, DataDROP] = OrderedDict()
-        if "outputs" in self.parameters and isinstance(self.parameters["outputs"][0], dict):
+        if "outputs" in self.parameters and isinstance(
+            self.parameters["outputs"][0], dict
+        ):
             for i in range(len(self._outputs)):
                 key = list(self.parameters["outputs"][i].values())[0]
                 value = self._outputs[list(self.parameters["outputs"][i].keys())[0]]
@@ -189,9 +206,12 @@ class MSReadApp(BarrierAppDROP):
 
     def run(self):
         named_outputs = self._generate_named_outputs()
+        logger.warning(f"self.parameters {self.parameters}")
 
         if len(self.inputs) < 1:
-            raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
+            raise DaliugeException(
+                f"MSReadApp has {len(self.inputs)} input drops but requires at least 1"
+            )
         ms_path: str = self.inputs[0].path
         assert os.path.exists(ms_path)
         assert casacore.tables.tableexists(ms_path)
@@ -201,6 +221,7 @@ class MSReadApp(BarrierAppDROP):
         baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
         has_autocorrelations: bool = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
         baselines: int = calculate_baselines(baseline_antennas, has_autocorrelations)
+
         row_start = self.timestep_start * baselines
         row_end = self.timestep_end * baselines if self.timestep_end is not None else -1
         row_range = (row_start, row_end)
@@ -215,23 +236,63 @@ class MSReadApp(BarrierAppDROP):
             slice(self.pol_start, self.pol_end),
         )
 
-        mssw = LazyObject(lambda: casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True))
-        # table, name, dtype, rows, slicer
-        uvw = LazyObject(lambda: read_ms_array(msm, "UVW", "float64", row_range, all_slice))
-        chan_freq = LazyObject(lambda: read_ms_array(mssw(), "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]))
-        chan_width = LazyObject(lambda: read_ms_array(mssw(), "CHAN_WIDTH", "float64", (0, -1), tensor_slice[1]))
-        msm_time = LazyObject(lambda: read_ms_array(msm, "TIME", "float64", row_range, all_slice))
-        data = LazyObject(
-            lambda: read_ms_array(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice)
+        mssw = LazyObject(
+            lambda: casacore.tables.table(
+                msm.getkeyword("SPECTRAL_WINDOW"), readonly=True
+            )
         )
-        flag = LazyObject(lambda: read_ms_array(msm, "FLAG", "bool", row_range, tensor_slice))
-        weight = LazyObject(lambda: read_ms_array(msm, "WEIGHT", "float64", row_range, all_slice))
-        sigma = LazyObject(lambda: read_ms_array(msm, "SIGMA", "float64", row_range, all_slice))
+        # table, name, dtype, rows, slicer
+        uvw = LazyObject(
+            lambda: read_ms_array(msm, "UVW", "float64", row_range, all_slice)
+        )
+        chan_freq = LazyObject(
+            lambda: read_ms_array(
+                mssw(), "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]
+            )
+        )
+        chan_width = LazyObject(
+            lambda: read_ms_array(
+                mssw(), "CHAN_WIDTH", "float64", (0, -1), tensor_slice[1]
+            )
+        )
+        msm_time = LazyObject(
+            lambda: read_ms_array(msm, "TIME", "float64", row_range, all_slice)
+        )
+        data = LazyObject(
+            lambda: read_ms_array(
+                msm,
+                "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)",
+                "complex128",
+                row_range,
+                tensor_slice,
+            )
+        )
+        flag = LazyObject(
+            lambda: read_ms_array(msm, "FLAG", "bool", row_range, tensor_slice)
+        )
+        weight = LazyObject(
+            lambda: read_ms_array(msm, "WEIGHT", "float64", row_range, all_slice)
+        )
+        sigma = LazyObject(
+            lambda: read_ms_array(msm, "SIGMA", "float64", row_range, all_slice)
+        )
         weight_spectrum = LazyObject(
-            lambda: read_ms_array(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice)
+            lambda: read_ms_array(
+                msm,
+                "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)",
+                "float64",
+                row_range,
+                tensor_slice,
+            )
         )
         sigma_spectrum = LazyObject(
-            lambda: read_ms_array(msm, "REPLACEMASKED(SIGMA_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice)
+            lambda: read_ms_array(
+                msm,
+                "REPLACEMASKED(SIGMA_SPECTRUM[FLAG], 0)",
+                "float64",
+                row_range,
+                tensor_slice,
+            )
         )
         ms_map: Dict[str, LazyObject[np.ndarray]] = {
             "uvw": uvw,
@@ -251,153 +312,6 @@ class MSReadApp(BarrierAppDROP):
 
         for port_name, output in named_outputs.items():
             save_npy(output, ms_map[port_name]())
-
-
-##
-# @brief SimulatedStreamingMSReadApp
-# @details Extracts measurement set tables to numpy arrays at simulated time increments.
-# @par EAGLE_START
-# @param category PythonApp
-# @param[in] cparam/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False//False/
-#     \~English Application class
-# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
-#     \~English Estimated execution time
-# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
-#     \~English Number of cores used
-# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
-#     \~English Is this node the start of a group?
-# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
-#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
-# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
-#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
-# @param[in] cparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
-#     \~English first timestamp to read
-# @param[in] cparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
-#     \~English last timestamp to read
-# @param[in] cparam/channel_start channel_start/0/Integer/readwrite/False//False/
-#     \~English first channel to read
-# @param[in] cparam/channel_end channel_end/None/Integer/readwrite/False//False/
-#     \~English last channel to read
-# @param[in] cparam/pol_start pol_start/0/Integer/readwrite/False//False/
-#     \~English first pol to read
-# @param[in] cparam/pol_end pol_end/None/Integer/readwrite/False//False/
-#     \~English last pol to read
-# @param[in] port/ms ms/PathBasedDrop/
-#     \~English PathBasedDrop to a Measurement Set
-# @param[out] port/uvw uvw/npy/
-#     \~English Port containing UVWs in npy format
-# @param[out] port/freq freq/npy/
-#     \~English Port containing frequencies in npy format
-# @param[out] port/vis vis/npy/
-#     \~English Port containing visibilities in npy format
-# @param[out] port/weight_spectrum weight_spectrum/npy/
-#     \~English Port containing weight spectrum in npy format
-# @param[out] port/flag flag/npy/
-#     \~English Port containing flags in npy format
-# @param[out] port/weight weight/npy/
-#     \~English Port containing weights in npy format
-# @par EAGLE_END
-class SimulatedStreamingMSReadApp(BarrierAppDROP):
-    component_meta = dlg_component(
-        "SimulatedStreamingMSReadApp",
-        "Simulated Streaming MeasurementSet Read App",
-        [dlg_batch_input("binary/*", [])],
-        [dlg_batch_output("binary/*", [])],
-        [dlg_streaming_input("binary/*")],
-    )
-    channel_start: int = dlg_int_param("channel_start", 0)  # type: ignore
-    channel_end: Optional[int] = dlg_int_param("channel_end", None)  # type: ignore
-    pol_start: int = dlg_int_param("pol_start", 0)  # type: ignore
-    pol_end: Optional[int] = dlg_int_param("pol_end", None)  # type: ignore
-    realtime_scale: float = dlg_float_param("realtime_scale", 1.0)  # type: ignore
-
-    def run(self):
-        if len(self.inputs) < 1:
-            raise Exception(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
-        ms_path: str = self.inputs[0].path
-        assert os.path.exists(ms_path)
-        assert casacore.tables.tableexists(ms_path)
-        msm = casacore.tables.table(ms_path, readonly=True)
-        mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
-
-        baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
-        has_autocorrelations = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
-        baselines: int = calculate_baselines(baseline_antennas, has_autocorrelations)
-
-        time_array = msm.getcol("TIME")
-        start_time = time_array[0]
-
-        time_index_start = 0
-        time_index_end = len(time_array)
-
-        if time_index_end is None:
-            raise Exception("This implementation is for barrier app drop with known time index count")
-        timesteps = (time_index_end - time_index_start) // baselines
-
-        # TODO: baseline slicing should be possible, use 4D reshape and index based slicing
-
-        default_slice = slice(0, None)
-        # (row, channels, pols)
-        tensor_slice = (
-            default_slice,
-            slice(self.channel_start, self.channel_end),
-            slice(self.pol_start, self.pol_end),
-        )
-
-        ##
-        # Process model outputs
-        portOptions = [PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1])]
-        output_offset = 1  # 0 reserved for end drop
-        for i, opt in enumerate(portOptions[0 : len(self.outputs)]):
-            save_npy(self.outputs[output_offset + i], opt2array(opt))
-
-        ##
-        # Process time-based streaming consumers
-
-        # NOTE: naturally the first message would fail to keep up for the first run as the
-        # wait time is ~0. Adding a prequery time allowance should let all the generators
-        # buffer and wait.
-        realtime_start = time.time() + (time_array[baselines] - start_time) if timesteps > 1 else 0
-
-        def calc_wait_time(time_index):
-            time_from_start = (time_array[time_index * baselines] - start_time) * self.realtime_scale
-            return realtime_start + time_from_start - time.time()
-
-        async def createArrayGenerator(opts: PortOptions) -> AsyncIterable:
-            """
-            Creates a numpy array async generator that awaits to simulate the
-            the original transmission data rate
-            """
-            for time_index in range(timesteps):
-                # update row range for streaming
-                row_range = (time_index * baselines, (time_index + 1) * baselines)
-                opts.rows = row_range
-                # prequery data before waiting
-                array = opt2array(opts)
-                wait_time = calc_wait_time(time_index)
-                if wait_time < 0 and timesteps > 1:
-                    # logger.error(f"{opts.select} stream cant keep up, wait_time: {wait_time}")
-                    raise Exception(f"{opts.select} stream cant keep up, wait_time: {wait_time}")
-                await asyncio.sleep(wait_time)
-                yield array
-
-        # each generator will yield at the simulation interval
-        array_generators = [
-            createArrayGenerator(PortOptions(msm, "UVW", "float64", (0, 0), default_slice)),
-            createArrayGenerator(PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", (0, 0), tensor_slice)),
-            createArrayGenerator(PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", (0, 0), tensor_slice)),
-            createArrayGenerator(PortOptions(msm, "FLAG", "bool", (0, 0), tensor_slice)),
-            createArrayGenerator(PortOptions(msm, "WEIGHT", "float64", (0, 0), default_slice)),
-        ]
-
-        async def process_streams():
-            tasks = []
-            for i, generator in enumerate(array_generators[0 : len(self.streamingConsumers)]):
-                tasks.append(asyncio.create_task(save_npy_stream(self.streamingConsumers[i], generator)))
-            await asyncio.wait(tasks)
-
-        loop = asyncio.new_event_loop()
-        loop.run_until_complete(process_streams())
 
 
 ##
@@ -461,7 +375,9 @@ class MSReadRowApp(BarrierAppDROP):
 
     def run(self):
         if len(self.inputs) < 1:
-            raise DaliugeException(f"MSReadApp has {len(self.inputs)} input drops but requires at least 1")
+            raise DaliugeException(
+                f"MSReadApp has {len(self.inputs)} input drops but requires at least 1"
+            )
         # assert isinstance(self.inputs[0], PathBasedDrop)
         ms_path = self.inputs[0].path
         assert os.path.exists(ms_path)
@@ -482,8 +398,20 @@ class MSReadRowApp(BarrierAppDROP):
         portOptions = [
             PortOptions(msm, "UVW", "float64", row_range, tensor_slice[0]),
             PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1]),
-            PortOptions(msm, "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)", "complex128", row_range, tensor_slice),
-            PortOptions(msm, "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)", "float64", row_range, tensor_slice),
+            PortOptions(
+                msm,
+                "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)",
+                "complex128",
+                row_range,
+                tensor_slice,
+            ),
+            PortOptions(
+                msm,
+                "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)",
+                "float64",
+                row_range,
+                tensor_slice,
+            ),
             PortOptions(msm, "FLAG", "bool", row_range, tensor_slice),
             PortOptions(msm, "WEIGHT", "float64", row_range, tensor_slice[0]),
         ]
@@ -493,7 +421,7 @@ class MSReadRowApp(BarrierAppDROP):
                 outputDrop = self.outputs[i]
                 data = (
                     opt.table.query(
-                        columns=f"{opt.name} as COL",
+                        columns=f"{opt.select} as COL",
                         offset=opt.rows[0],
                         limit=opt.rows[1] - opt.rows[0],
                     )
@@ -502,6 +430,191 @@ class MSReadRowApp(BarrierAppDROP):
                     .astype(opt.dtype)
                 )
                 save_npy(outputDrop, data)
+
+
+##
+# @brief SimulatedStreamingMSReadApp
+# @details Extracts measurement set tables to numpy arrays at simulated time increments.
+# @par EAGLE_START
+# @param category PythonApp
+# @param[in] cparam/appclass appclass/dlg_casacore_components.ms.MSReadApp/String/readonly/False//False/
+#     \~English Application class
+# @param[in] cparam/execution_time Execution Time/5/Float/readonly/False//False/
+#     \~English Estimated execution time
+# @param[in] cparam/num_cpus No. of CPUs/1/Integer/readonly/False//False/
+#     \~English Number of cores used
+# @param[in] cparam/group_start Group start/False/Boolean/readwrite/False//False/
+#     \~English Is this node the start of a group?
+# @param[in] cparam/input_error_threshold "Input error rate (%)"/0/Integer/readwrite/False//False/
+#     \~English the allowed failure rate of the inputs (in percent), before this component goes to ERROR state and is not executed
+# @param[in] cparam/n_tries Number of tries/1/Integer/readwrite/False//False/
+#     \~English Specifies the number of times the 'run' method will be executed before finally giving up
+# @param[in] cparam/timestep_start timestep_start/0/Integer/readwrite/False//False/
+#     \~English first timestamp to read
+# @param[in] cparam/timestep_end timestep_end/None/Integer/readwrite/False//False/
+#     \~English last timestamp to read
+# @param[in] cparam/channel_start channel_start/0/Integer/readwrite/False//False/
+#     \~English first channel to read
+# @param[in] cparam/channel_end channel_end/None/Integer/readwrite/False//False/
+#     \~English last channel to read
+# @param[in] cparam/pol_start pol_start/0/Integer/readwrite/False//False/
+#     \~English first pol to read
+# @param[in] cparam/pol_end pol_end/None/Integer/readwrite/False//False/
+#     \~English last pol to read
+# @param[in] port/ms ms/PathBasedDrop/
+#     \~English PathBasedDrop to a Measurement Set
+# @param[out] port/uvw uvw/npy/
+#     \~English Port containing UVWs in npy format
+# @param[out] port/freq freq/npy/
+#     \~English Port containing frequencies in npy format
+# @param[out] port/vis vis/npy/
+#     \~English Port containing visibilities in npy format
+# @param[out] port/weight_spectrum weight_spectrum/npy/
+#     \~English Port containing weight spectrum in npy format
+# @param[out] port/flag flag/npy/
+#     \~English Port containing flags in npy format
+# @param[out] port/weight weight/npy/
+#     \~English Port containing weights in npy format
+# @par EAGLE_END
+class SimulatedStreamingMSReadApp(BarrierAppDROP):
+    component_meta = dlg_component(
+        "SimulatedStreamingMSReadApp",
+        "Simulated Streaming MeasurementSet Read App",
+        [dlg_batch_input("binary/*", [])],
+        [dlg_batch_output("binary/*", [])],
+        [dlg_streaming_input("binary/*")],
+    )
+    channel_start: int = dlg_int_param("channel_start", 0)  # type: ignore
+    channel_end: Optional[int] = dlg_int_param("channel_end", None)  # type: ignore
+    pol_start: int = dlg_int_param("pol_start", 0)  # type: ignore
+    pol_end: Optional[int] = dlg_int_param("pol_end", None)  # type: ignore
+    realtime_scale: float = dlg_float_param("realtime_scale", 1.0)  # type: ignore
+
+    def run(self):
+        if len(self.inputs) < 1:
+            raise Exception(
+                f"MSReadApp has {len(self.inputs)} input drops but requires at least 1"
+            )
+        ms_path: str = self.inputs[0].path
+        assert os.path.exists(ms_path)
+        assert casacore.tables.tableexists(ms_path)
+        msm = casacore.tables.table(ms_path, readonly=True)
+        mssw = casacore.tables.table(msm.getkeyword("SPECTRAL_WINDOW"), readonly=True)
+
+        baseline_antennas = np.unique(msm.getcol("ANTENNA1")).shape[0]
+        has_autocorrelations = msm.query("ANTENNA1==ANTENNA2").nrows() > 0
+        baselines: int = calculate_baselines(baseline_antennas, has_autocorrelations)
+
+        time_array = msm.getcol("TIME")
+        start_time = time_array[0]
+
+        time_index_start = 0
+        time_index_end = len(time_array)
+
+        if time_index_end is None:
+            raise Exception(
+                "This implementation is for barrier app drop with known time index count"
+            )
+        timesteps = (time_index_end - time_index_start) // baselines
+
+        # TODO: baseline slicing should be possible, use 4D reshape and index based slicing
+
+        default_slice = slice(0, None)
+        # (row, channels, pols)
+        tensor_slice = (
+            default_slice,
+            slice(self.channel_start, self.channel_end),
+            slice(self.pol_start, self.pol_end),
+        )
+
+        ##
+        # Process model outputs
+        portOptions = [
+            PortOptions(mssw, "CHAN_FREQ", "float64", (0, -1), tensor_slice[1])
+        ]
+        output_offset = 1  # 0 reserved for end drop
+        for i, opt in enumerate(portOptions[0 : len(self.outputs)]):
+            save_npy(self.outputs[output_offset + i], opt2array(opt))
+
+        ##
+        # Process time-based streaming consumers
+
+        # NOTE: naturally the first message would fail to keep up for the first run as the
+        # wait time is ~0. Adding a prequery time allowance should let all the generators
+        # buffer and wait.
+        realtime_start = (
+            time.time() + (time_array[baselines] - start_time) if timesteps > 1 else 0
+        )
+
+        def calc_wait_time(time_index):
+            time_from_start = (
+                time_array[time_index * baselines] - start_time
+            ) * self.realtime_scale
+            return realtime_start + time_from_start - time.time()
+
+        async def createArrayGenerator(opts: PortOptions) -> AsyncIterable:
+            """
+            Creates a numpy array async generator that awaits to simulate the
+            the original transmission data rate
+            """
+            for time_index in range(timesteps):
+                # update row range for streaming
+                row_range = (time_index * baselines, (time_index + 1) * baselines)
+                opts.rows = row_range
+                # prequery data before waiting
+                array = opt2array(opts)
+                wait_time = calc_wait_time(time_index)
+                if wait_time < 0 and timesteps > 1:
+                    # logger.error(f"{opts.select} stream cant keep up, wait_time: {wait_time}")
+                    raise Exception(
+                        f"{opts.select} stream cant keep up, wait_time: {wait_time}"
+                    )
+                await asyncio.sleep(wait_time)
+                yield array
+
+        # each generator will yield at the simulation interval
+        array_generators = [
+            createArrayGenerator(
+                PortOptions(msm, "UVW", "float64", (0, 0), default_slice)
+            ),
+            createArrayGenerator(
+                PortOptions(
+                    msm,
+                    "REPLACEMASKED(DATA[FLAG||ANTENNA1==ANTENNA2], 0)",
+                    "complex128",
+                    (0, 0),
+                    tensor_slice,
+                )
+            ),
+            createArrayGenerator(
+                PortOptions(
+                    msm,
+                    "REPLACEMASKED(WEIGHT_SPECTRUM[FLAG], 0)",
+                    "float64",
+                    (0, 0),
+                    tensor_slice,
+                )
+            ),
+            createArrayGenerator(PortOptions(msm, "FLAG", "bool", (0, 0), tensor_slice)),
+            createArrayGenerator(
+                PortOptions(msm, "WEIGHT", "float64", (0, 0), default_slice)
+            ),
+        ]
+
+        async def process_streams():
+            tasks = []
+            for i, generator in enumerate(
+                array_generators[0 : len(self.streamingConsumers)]
+            ):
+                tasks.append(
+                    asyncio.create_task(
+                        save_npy_stream(self.streamingConsumers[i], generator)
+                    )
+                )
+            await asyncio.wait(tasks)
+
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(process_streams())
 
 
 ##

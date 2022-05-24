@@ -21,7 +21,14 @@ import logging
 
 import casacore.tables
 from dlg.drop import BarrierAppDROP
-from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_int_param, dlg_streaming_input, dlg_string_param
+from dlg.meta import (
+    dlg_batch_input,
+    dlg_batch_output,
+    dlg_component,
+    dlg_int_param,
+    dlg_streaming_input,
+    dlg_string_param,
+)
 
 try:
     from dlg.droputils import load_npy, save_npy

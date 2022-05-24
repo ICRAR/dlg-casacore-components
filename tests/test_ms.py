@@ -42,7 +42,11 @@ try:
 except ImportError:
     streaming = False
 
-from dlg_casacore_components.ms import MSReadApp, MSReadRowApp, SimulatedStreamingMSReadApp
+from dlg_casacore_components.ms import (
+    MSReadApp,
+    MSReadRowApp,
+    SimulatedStreamingMSReadApp,
+)
 from dlg_casacore_components.taql import TaqlQueryApp, TaqlColApp
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
@@ -71,7 +75,12 @@ class MSTests(unittest.TestCase):
 
     def test_ms_read_single(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = MSReadApp("2", "2", timestep_end=1)
+        drop = MSReadApp(
+            "2",
+            "2",
+            timestep_end=1,
+            outputs=[{"uvw": "uvw"}, {"freq": "freq"}, {"vis": "vis"}],
+        )
         uvwDrop = InMemoryDROP("uvw", "uvw")
         freqDrop = InMemoryDROP("freq", "freq")
         visDrop = InMemoryDROP("vis", "vis")
@@ -93,7 +102,9 @@ class MSTests(unittest.TestCase):
 
     def test_ms_read(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = MSReadApp("2", "2")
+        drop = MSReadApp(
+            "2", "2", outputs=[{"uvw": "uvw"}, {"freq": "freq"}, {"vis": "vis"}]
+        )
         uvwDrop = InMemoryDROP("uvw", "uvw")
         freqDrop = InMemoryDROP("freq", "freq")
         visDrop = InMemoryDROP("vis", "vis")
@@ -127,7 +138,12 @@ class MSTests(unittest.TestCase):
 
     def test_ms_read_row(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = MSReadRowApp("2", "2", row_end=20)
+        drop = MSReadRowApp(
+            "2",
+            "2",
+            row_end=20,
+            outputs=[{"uvw": "uvw"}, {"freq": "freq"}, {"vis": "vis"}],
+        )
         uvwDrop = InMemoryDROP("uvw", "uvw")
         freqDrop = InMemoryDROP("freq", "freq")
         visDrop = InMemoryDROP("vis", "vis")
@@ -155,7 +171,12 @@ class MSTests(unittest.TestCase):
     @unittest.skipIf(streaming is False, reason="streaming utils not available")
     def test_streaming_ms_read(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
-        drop = SimulatedStreamingMSReadApp("2", "2", realtime_scale=0.02)
+        drop = SimulatedStreamingMSReadApp(
+            "2",
+            "2",
+            realtime_scale=0.02,
+            outputs=[{"uvw": "uvw"}, {"freq": "freq"}, {"vis": "vis"}],
+        )
         # drop = SimulatedStreamingMSReadApp("2", "2", timestep_end=1)
         endDrop = EndDROP("end", "end")
         freqDrop = InMemoryDROP("freq", "freq")
@@ -200,7 +221,7 @@ class MSTests(unittest.TestCase):
     def test_taql_query(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
         drop = TaqlQueryApp("2", "2", column="DATA", offset=0, limit=30)
-        visDrop = InMemoryDROP("vis", "vis")
+        visDrop = InMemoryDROP("vis", "vis", outputs=[{"vis": "vis"}])
 
         drop.addInput(ms_in)
         drop.addOutput(visDrop)
@@ -214,7 +235,7 @@ class MSTests(unittest.TestCase):
     def test_taql_col(self):
         ms_in = FileDROP("1", "1", filepath=str(self.in_filepath))
         drop = TaqlColApp("2", "2", query="select DATA from $1 limit 30")
-        visDrop = InMemoryDROP("vis", "vis")
+        visDrop = InMemoryDROP("vis", "vis", outputs=[{"vis": "vis"}])
 
         drop.addInput(ms_in)
         drop.addOutput(visDrop)

@@ -26,15 +26,15 @@ install:          ## Install the project in dev mode.
 
 .PHONY: fmt
 fmt:              ## Format code using black & isort.
-	$(ENV_PREFIX)isort dlg_casacore_components/
-	$(ENV_PREFIX)black -l 140 dlg_casacore_components/
-	$(ENV_PREFIX)black -l 140 tests/
+	$(ENV_PREFIX)isort -l 90 dlg_casacore_components/
+	$(ENV_PREFIX)black -l 90 dlg_casacore_components/
+	$(ENV_PREFIX)black -l 90 tests/
 
 .PHONY: lint
 lint:             ## Run pep8, black, mypy linters.
 	$(ENV_PREFIX)flake8 dlg_casacore_components/
-	$(ENV_PREFIX)black -l 140 --check dlg_casacore_components/
-	$(ENV_PREFIX)black -l 140 --check tests/
+	$(ENV_PREFIX)black -l 90 --check dlg_casacore_components/
+	$(ENV_PREFIX)black -l 90 --check tests/
 	$(ENV_PREFIX)mypy --ignore-missing-imports dlg_casacore_components/
 
 .PHONY: test

@@ -24,7 +24,14 @@ from threading import Thread
 
 from dlg.ddap_protocol import AppDROPStates
 from dlg.drop import AppDROP, BarrierAppDROP, PathBasedDrop
-from dlg.meta import dlg_batch_input, dlg_batch_output, dlg_component, dlg_float_param, dlg_streaming_input, dlg_string_param
+from dlg.meta import (
+    dlg_batch_input,
+    dlg_batch_output,
+    dlg_component,
+    dlg_float_param,
+    dlg_streaming_input,
+    dlg_string_param,
+)
 from overrides import overrides
 
 # import ska_ser_logging
@@ -82,7 +89,9 @@ class MSStreamingPlasmaProcessor(AppDROP):
 
     async def _run_processor(self):
         if len(self.outputs) < 1:
-            raise Exception(f"At least one output MS should have been connected to {self!r}")
+            raise Exception(
+                f"At least one output MS should have been connected to {self!r}"
+            )
         output_file = self.outputs[0]._path
 
         runner = plasma_processor.Runner(
@@ -183,7 +192,9 @@ class MSPlasmaStreamingConsumer(BarrierAppDROP):
             await c.consume(payload)
 
             # wait for the response to arrive
-            await asyncio.get_event_loop().run_in_executor(None, c.get_response, c.output_refs.pop(0), 10)
+            await asyncio.get_event_loop().run_in_executor(
+                None, c.get_response, c.output_refs.pop(0), 10
+            )
 
     def run(self):
         # self.input_file = kwargs.get('input_file')
@@ -235,7 +246,11 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
     def initialize(self, **kwargs):
         super().initialize(**kwargs)
         self.config = create_config_parser()
-        self.config["reception"] = {"consumer": "plasma_writer", "test_entry": 5, "plasma_path": self.plasma_path}
+        self.config["reception"] = {
+            "consumer": "plasma_writer",
+            "test_entry": 5,
+            "plasma_path": self.plasma_path,
+        }
 
     async def _run_producer(self):
         c = plasma_writer.consumer(self.config, FakeTM(self.input_file))
@@ -251,11 +266,15 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
             await c.consume(payload)
 
             # For for the response to arrive
-            await asyncio.get_event_loop().run_in_executor(None, c.get_response, c.output_refs.pop(0), 10)
+            await asyncio.get_event_loop().run_in_executor(
+                None, c.get_response, c.output_refs.pop(0), 10
+            )
 
     def run(self):
         if len(self.inputs) < 1:
-            raise Exception("At least one input MS should have been connected to %r" % self)
+            raise Exception(
+                "At least one input MS should have been connected to %r" % self
+            )
         assert isinstance(self.inputs[0], PathBasedDrop)
         self.input_file = self.inputs[0]._path
         self.outputs[0].write(b"init")
