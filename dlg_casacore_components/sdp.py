@@ -21,13 +21,6 @@ import asyncio
 import logging
 from multiprocessing import Lock
 from threading import Thread
-from overrides import overrides
-
-# import ska_ser_logging
-from realtime.receive.core import icd, msutils, FakeTM
-from realtime.receive.core.config import create_config_parser
-from realtime.receive.modules.consumers import plasma_writer
-from realtime.receive.modules.plasma import plasma_processor
 
 from dlg.ddap_protocol import AppDROPStates
 from dlg.drop import AppDROP, BarrierAppDROP, PathBasedDrop
@@ -39,6 +32,13 @@ from dlg.meta import (
     dlg_streaming_input,
     dlg_string_param,
 )
+from overrides import overrides
+
+# import ska_ser_logging
+from realtime.receive.core import FakeTM, icd, msutils
+from realtime.receive.core.config import create_config_parser
+from realtime.receive.modules.consumers import plasma_writer
+from realtime.receive.modules.plasma import plasma_processor
 
 # ska_ser_logging.configure_logging(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -89,7 +89,9 @@ class MSStreamingPlasmaProcessor(AppDROP):
 
     async def _run_processor(self):
         if len(self.outputs) < 1:
-            raise Exception(f"At least one output MS should have been connected to {self!r}")
+            raise Exception(
+                f"At least one output MS should have been connected to {self!r}"
+            )
         output_file = self.outputs[0]._path
 
         runner = plasma_processor.Runner(
@@ -190,7 +192,9 @@ class MSPlasmaStreamingConsumer(BarrierAppDROP):
             await c.consume(payload)
 
             # wait for the response to arrive
-            await asyncio.get_event_loop().run_in_executor(None, c.get_response, c.output_refs.pop(0), 10)
+            await asyncio.get_event_loop().run_in_executor(
+                None, c.get_response, c.output_refs.pop(0), 10
+            )
 
     def run(self):
         # self.input_file = kwargs.get('input_file')
@@ -242,7 +246,11 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
     def initialize(self, **kwargs):
         super().initialize(**kwargs)
         self.config = create_config_parser()
-        self.config["reception"] = {"consumer": "plasma_writer", "test_entry": 5, "plasma_path": self.plasma_path}
+        self.config["reception"] = {
+            "consumer": "plasma_writer",
+            "test_entry": 5,
+            "plasma_path": self.plasma_path,
+        }
 
     async def _run_producer(self):
         c = plasma_writer.consumer(self.config, FakeTM(self.input_file))
@@ -258,11 +266,15 @@ class MSStreamingPlasmaProducer(BarrierAppDROP):
             await c.consume(payload)
 
             # For for the response to arrive
-            await asyncio.get_event_loop().run_in_executor(None, c.get_response, c.output_refs.pop(0), 10)
+            await asyncio.get_event_loop().run_in_executor(
+                None, c.get_response, c.output_refs.pop(0), 10
+            )
 
     def run(self):
         if len(self.inputs) < 1:
-            raise Exception("At least one input MS should have been connected to %r" % self)
+            raise Exception(
+                "At least one input MS should have been connected to %r" % self
+            )
         assert isinstance(self.inputs[0], PathBasedDrop)
         self.input_file = self.inputs[0]._path
         self.outputs[0].write(b"init")

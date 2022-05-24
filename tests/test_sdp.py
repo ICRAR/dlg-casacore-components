@@ -60,7 +60,9 @@ class TestSDP(unittest.TestCase):
         assert Path.is_dir(self.in_filepath), f"{self.in_filepath} does not exist"
 
         # Creates a plasma store service
-        self.store = subprocess.Popen(["plasma_store", "-m", "100000000", "-s", "/tmp/plasma"])
+        self.store = subprocess.Popen(
+            ["plasma_store", "-m", "100000000", "-s", "/tmp/plasma"]
+        )
 
     def tearDown(self):
         self.store.terminate()
