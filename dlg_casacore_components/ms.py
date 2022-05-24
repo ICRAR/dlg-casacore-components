@@ -52,7 +52,7 @@ T = TypeVar("T")
 class LazyObject(Generic[T]):
     def __init__(self, func: Callable[[], T]):
         self.func = func
-        self.value = None
+        self.value: Optional[T] = None
 
     def __call__(self) -> T:
         if self.value is None:
